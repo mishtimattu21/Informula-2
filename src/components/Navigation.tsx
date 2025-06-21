@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useTheme } from './ThemeProvider';
 import { Button } from '@/components/ui/button';
@@ -23,7 +22,7 @@ const Navigation: React.FC = () => {
       <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border/40">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <div className="text-2xl font-bold bg-gradient-to-r from-emerald-500 to-teal-400 bg-clip-text text-transparent">
+            <div className="text-2xl font-bold bg-gradient-to-r from-emerald-500 to-teal-400 bg-clip-text text-transparent ml-4">
               Informula
             </div>
             

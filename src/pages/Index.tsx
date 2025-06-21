@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { ThemeProvider } from '../components/ThemeProvider';
 import Navigation from '../components/Navigation';
@@ -7,6 +6,7 @@ import AboutSection from '../components/AboutSection';
 import StepsSection from '../components/StepsSection';
 import FeaturesSection from '../components/FeaturesSection';
 import ContactSection from '../components/ContactSection';
+import Footer from '../components/Footer';
 
 const Index = () => {
   return (
@@ -18,6 +18,7 @@ const Index = () => {
         <StepsSection />
         <FeaturesSection />
         <ContactSection />
+        <Footer />
       </div>
     </ThemeProvider>
   );
