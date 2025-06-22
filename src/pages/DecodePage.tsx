@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 import { Upload, Camera } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../components/ThemeProvider';
@@ -15,6 +16,10 @@ const DecodePage: React.FC = () => {
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [showCamera, setShowCamera] = useState(false);
+  const [showImageModal, setShowImageModal] = useState(false);
+  const [modalImage, setModalImage] = useState<string | null>(null);
+  const [productName, setProductName] = useState('');
+  const [productQuery, setProductQuery] = useState('');
   const navigate = useNavigate();
   const { toggleTheme, theme } = useTheme();
 
@@ -55,6 +60,7 @@ const DecodePage: React.FC = () => {
 
   const handleCameraCapture = (imageData: string) => {
     setCapturedImage(imageData);
+    setShowCamera(false);
     toast({
       title: "Image captured successfully!",
       description: "Ready to analyze ingredients from your photo.",
@@ -103,47 +109,30 @@ const DecodePage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-emerald-50/30 dark:to-emerald-950/30">
       {/* Header */}
-      <div className="border-b border-border/40 backdrop-blur-lg bg-background/80">
         <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
             <button 
               onClick={() => navigate('/')}
-              className="text-2xl font-bold bg-gradient-to-r from-emerald-500 to-teal-400 bg-clip-text text-transparent"
-            >
-              Informula
+              className="flex items-center space-x-2 px-4 py-2 rounded-xl bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm border-2 border-gray-200 dark:border-gray-700 hover:bg-white dark:hover:bg-gray-800 transition-all duration-200"
+        >
+              Back to home
             </button>
             
-            <div className="flex items-center space-x-4">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={toggleTheme}
-                className="rounded-full p-2"
-              >
-                {theme === 'light' ? '🌙' : '☀️'}
-              </Button>
-              <Button variant="outline" size="sm">
-                Sign In
-              </Button>
-            </div>
-          </div>
+            
         </div>
-      </div>
+      
 
       {/* Main Content */}
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-1">
         <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-8">
+          <div className="text-center mb-12">
             <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-emerald-600 to-teal-500 bg-clip-text text-transparent">
               Decode Your Ingredients
             </h1>
-            <p className="text-lg text-foreground/70">
-              Choose your preferred method to analyze product ingredients
-            </p>
+            
           </div>
 
           {/* Method Selection Tabs */}
-          <div className="flex justify-center mb-8">
+          <div className="flex justify-center mb-4">
             <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-2 flex space-x-2">
               {[
                 { id: 'scan', label: 'Scan/Camera', icon: '📱' },
@@ -170,79 +159,75 @@ const DecodePage: React.FC = () => {
           <Card className="rounded-2xl shadow-lg border-2 border-emerald-200 dark:border-emerald-800 mb-8">
             <CardContent className="p-8">
               {activeTab === 'scan' && (
-                <div className="text-center space-y-6">
-                  {!capturedImage ? (
-                    <>
-                      <div className="w-32 h-32 mx-auto bg-gradient-to-r from-emerald-500 to-teal-500 rounded-2xl flex items-center justify-center">
-                        <Camera className="w-16 h-16 text-white" />
-                      </div>
-                      <h3 className="text-2xl font-semibold">Scan Ingredient Labels</h3>
-                      <p className="text-foreground/70 max-w-md mx-auto">
-                        Use your device camera to scan ingredient lists directly from product packaging
-                      </p>
+                <div className="space-y-6">
+                  <div className="text-center space-y-6">
+                    {!capturedImage ? (
+                      <>
+                        <button
+                          onClick={() => setShowCamera(true)}
+                          className="w-32 h-32 mx-auto bg-gradient-to-r from-emerald-500 to-teal-500 rounded-2xl flex items-center justify-center hover:from-emerald-600 hover:to-teal-600 transition-all duration-300 transform hover:scale-105 shadow-lg"
+                        >
+                          <Camera className="w-16 h-16 text-white" />
+                        </button>
+                        <p className="text-lg font-medium">Tap to Scan</p>
+                      </>
+                    ) : (
                       <div className="space-y-4">
-                        <Button 
-                          onClick={() => setShowCamera(true)}
-                          className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white px-8 py-3 rounded-xl"
-                        >
-                          <Camera className="mr-2" size={16} />
-                          Open Camera
-                        </Button>
-                        <br />
-                        <Button 
-                          variant="outline"
-                          className="px-8 py-3 rounded-xl border-2 border-emerald-200 dark:border-emerald-800"
-                          onClick={() => document.getElementById('gallery-upload')?.click()}
-                        >
-                          Choose from Gallery
-                        </Button>
-                        <input
-                          id="gallery-upload"
-                          type="file"
-                          accept="image/*"
-                          onChange={(e) => {
-                            if (e.target.files && e.target.files[0]) {
-                              const reader = new FileReader();
-                              reader.onload = (event) => {
-                                if (event.target?.result) {
-                                  setCapturedImage(event.target.result as string);
-                                }
-                              };
-                              reader.readAsDataURL(e.target.files[0]);
-                            }
-                          }}
-                          className="hidden"
+                        <h3 className="text-2xl font-semibold">Image Captured</h3>
+                        <div className="max-w-sm mx-auto">
+                          <img 
+                            src={capturedImage} 
+                            alt="Captured ingredient label" 
+                            className="w-full h-48 object-cover rounded-xl border-2 border-emerald-200 dark:border-emerald-800 cursor-pointer hover:opacity-80 transition-opacity"
+                            onClick={() => {
+                              setModalImage(capturedImage);
+                              setShowImageModal(true);
+                            }}
+                          />
+                        </div>
+                        <div className="flex gap-4 justify-center">
+                          <Button 
+                            onClick={() => setCapturedImage(null)}
+                            variant="outline"
+                            className="px-6 py-2 rounded-xl"
+                          >
+                            Retake
+                          </Button>
+                          <Button 
+                            onClick={() => setShowCamera(true)}
+                            variant="outline"
+                            className="px-6 py-2 rounded-xl"
+                          >
+                            Take Another
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Product Information Fields */}
+                  <div className="pt-6 border-t border-gray-200 dark:border-gray-700">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium mb-2">Product Name (Optional)</label>
+                        <Input
+                          placeholder="e.g., Neutrogena Ultra Sheer Sunscreen"
+                          value={productName}
+                          onChange={(e) => setProductName(e.target.value)}
+                          className="rounded-xl border-2 border-gray-200 dark:border-gray-700 focus:border-emerald-500"
                         />
                       </div>
-                    </>
-                  ) : (
-                    <div className="space-y-4">
-                      <h3 className="text-2xl font-semibold">Image Captured</h3>
-                      <div className="max-w-md mx-auto">
-                        <img 
-                          src={capturedImage} 
-                          alt="Captured ingredient label" 
-                          className="w-full rounded-xl border-2 border-emerald-200 dark:border-emerald-800"
+                      <div>
+                        <label className="block text-sm font-medium mb-2">Product Query (Optional)</label>
+                        <Input
+                          placeholder="e.g., Is this sunscreen safe for sensitive skin?"
+                          value={productQuery}
+                          onChange={(e) => setProductQuery(e.target.value)}
+                          className="rounded-xl border-2 border-gray-200 dark:border-gray-700 focus:border-emerald-500"
                         />
-                      </div>
-                      <div className="flex gap-4 justify-center">
-                        <Button 
-                          onClick={() => setCapturedImage(null)}
-                          variant="outline"
-                          className="px-6 py-2 rounded-xl"
-                        >
-                          Retake
-                        </Button>
-                        <Button 
-                          onClick={() => setShowCamera(true)}
-                          variant="outline"
-                          className="px-6 py-2 rounded-xl"
-                        >
-                          Take Another
-                        </Button>
                       </div>
                     </div>
-                  )}
+                  </div>
                 </div>
               )}
 
@@ -284,28 +269,66 @@ const DecodePage: React.FC = () => {
                   </div>
 
                   {uploadedFile && (
-                    <div className="bg-emerald-50 dark:bg-emerald-950/30 rounded-xl p-4 flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 bg-emerald-500 rounded-lg flex items-center justify-center">
-                          <span className="text-white text-sm">📷</span>
+                    <div className="bg-emerald-50 dark:bg-emerald-950/30 rounded-xl p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-10 h-10 bg-emerald-500 rounded-lg flex items-center justify-center">
+                            <span className="text-white text-sm">📷</span>
+                          </div>
+                          <div>
+                            <p className="font-medium">{uploadedFile.name}</p>
+                            <p className="text-sm text-foreground/70">
+                              {(uploadedFile.size / 1024 / 1024).toFixed(2)} MB
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-medium">{uploadedFile.name}</p>
-                          <p className="text-sm text-foreground/70">
-                            {(uploadedFile.size / 1024 / 1024).toFixed(2)} MB
-                          </p>
-                        </div>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => setUploadedFile(null)}
+                          className="text-red-500 hover:text-red-700"
+                        >
+                          Remove
+                        </Button>
                       </div>
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        onClick={() => setUploadedFile(null)}
-                        className="text-red-500 hover:text-red-700"
-                      >
-                        Remove
-                      </Button>
+                      <div className="max-w-sm mx-auto">
+                        <img 
+                          src={URL.createObjectURL(uploadedFile)} 
+                          alt="Uploaded image preview" 
+                          className="w-full h-48 object-cover rounded-xl border-2 border-emerald-200 dark:border-emerald-800 cursor-pointer hover:opacity-80 transition-opacity"
+                          onClick={() => {
+                            const imageUrl = URL.createObjectURL(uploadedFile);
+                            setModalImage(imageUrl);
+                            setShowImageModal(true);
+                          }}
+                        />
+                      </div>
                     </div>
                   )}
+
+                  {/* Product Information Fields */}
+                  <div className="pt-6 border-t border-gray-200 dark:border-gray-700">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium mb-2">Product Name (Optional)</label>
+                        <Input
+                          placeholder="e.g., Neutrogena Ultra Sheer Sunscreen"
+                          value={productName}
+                          onChange={(e) => setProductName(e.target.value)}
+                          className="rounded-xl border-2 border-gray-200 dark:border-gray-700 focus:border-emerald-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-2">Product Query (Optional)</label>
+                        <Input
+                          placeholder="e.g., Is this sunscreen safe for sensitive skin?"
+                          value={productQuery}
+                          onChange={(e) => setProductQuery(e.target.value)}
+                          className="rounded-xl border-2 border-gray-200 dark:border-gray-700 focus:border-emerald-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
 
@@ -330,6 +353,30 @@ Example: Water, Sodium Lauryl Sulfate, Cocamidopropyl Betaine, Sodium Chloride, 
                       <li>• Check spelling for accurate analysis</li>
                     </ul>
                   </div>
+
+                  {/* Product Information Fields */}
+                  <div className="pt-6 border-t border-gray-200 dark:border-gray-700">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium mb-2">Product Name (Optional)</label>
+                        <Input
+                          placeholder="e.g., Neutrogena Ultra Sheer Sunscreen"
+                          value={productName}
+                          onChange={(e) => setProductName(e.target.value)}
+                          className="rounded-xl border-2 border-gray-200 dark:border-gray-700 focus:border-emerald-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-2">Product Query (Optional)</label>
+                        <Input
+                          placeholder="e.g., Is this sunscreen safe for sensitive skin?"
+                          value={productQuery}
+                          onChange={(e) => setProductQuery(e.target.value)}
+                          className="rounded-xl border-2 border-gray-200 dark:border-gray-700 focus:border-emerald-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
             </CardContent>
@@ -350,10 +397,109 @@ Example: Water, Sodium Lauryl Sulfate, Cocamidopropyl Betaine, Sodium Chloride, 
 
       {/* Camera Interface Modal */}
       {showCamera && (
-        <CameraInterface
-          onCapture={handleCameraCapture}
-          onClose={() => setShowCamera(false)}
-        />
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 max-w-md w-full mx-4">
+            <div className="text-center space-y-4">
+              <h3 className="text-xl font-semibold">Camera</h3>
+              
+              {/* Camera Preview Area */}
+              <div className="relative bg-gray-200 dark:bg-gray-700 rounded-xl h-64 flex items-center justify-center">
+                <video 
+                  ref={(video) => {
+                    if (video && showCamera) {
+                      navigator.mediaDevices.getUserMedia({ video: true })
+                        .then(stream => {
+                          video.srcObject = stream;
+                          video.play();
+                        })
+                        .catch(err => {
+                          console.error('Camera access denied:', err);
+                          toast({
+                            title: "Camera access denied",
+                            description: "Please allow camera access to capture images.",
+                            variant: "destructive"
+                          });
+                        });
+                    }
+                  }}
+                  className="w-full h-full object-cover rounded-xl"
+                  autoPlay
+                  playsInline
+                />
+              </div>
+
+              {/* Capture Button */}
+              <div className="flex justify-center space-x-4">
+                <Button
+                  onClick={() => {
+                    const video = document.querySelector('video');
+                    if (video) {
+                      const canvas = document.createElement('canvas');
+                      canvas.width = video.videoWidth;
+                      canvas.height = video.videoHeight;
+                      const ctx = canvas.getContext('2d');
+                      ctx?.drawImage(video, 0, 0);
+                      const imageData = canvas.toDataURL('image/jpeg');
+                      
+                      // Stop camera stream
+                      const stream = video.srcObject as MediaStream;
+                      if (stream) {
+                        stream.getTracks().forEach(track => track.stop());
+                      }
+                      
+                      handleCameraCapture(imageData);
+                    }
+                  }}
+                  className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white px-8 py-3 rounded-xl"
+                >
+                  <Camera className="mr-2" size={16} />
+                  Capture
+                </Button>
+                <Button
+                  onClick={() => {
+                    const video = document.querySelector('video');
+                    if (video) {
+                      const stream = video.srcObject as MediaStream;
+                      if (stream) {
+                        stream.getTracks().forEach(track => track.stop());
+                      }
+                    }
+                    setShowCamera(false);
+                  }}
+                  variant="outline"
+                  className="px-8 py-3 rounded-xl"
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Full Image Modal */}
+      {showImageModal && modalImage && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowImageModal(false)}
+        >
+          <div className="relative max-w-4xl max-h-full">
+            <img 
+              src={modalImage} 
+              alt="Full size view" 
+              className="max-w-full max-h-screen object-contain rounded-lg"
+              onClick={(e) => e.stopPropagation()}
+            />
+            <button
+              onClick={() => setShowImageModal(false)}
+              className="absolute top-4 right-4 bg-white/20 hover:bg-white/30 text-white rounded-full p-2 transition-colors"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );
