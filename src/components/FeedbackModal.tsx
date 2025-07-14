@@ -4,6 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { X, Send, Star } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/lib/supabaseClient';
 
 interface FeedbackModalProps {
   isOpen: boolean;
@@ -13,15 +14,28 @@ interface FeedbackModalProps {
 const FeedbackModal: React.FC<FeedbackModalProps> = ({ isOpen, onClose }) => {
   const [feedback, setFeedback] = useState('');
   const [rating, setRating] = useState(0);
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    toast({
-      title: "Thank you for your feedback!",
-      description: "We appreciate your input and will use it to improve Informula.",
+    setLoading(true);
+    const { error } = await supabase.from('Feedback').insert({
+      stars: rating,
+      message: feedback,
     });
-    
+    setLoading(false);
+    if (error) {
+      toast({
+        title: 'Error submitting feedback',
+        description: error.message,
+        variant: 'destructive',
+      });
+      return;
+    }
+    toast({
+      title: 'Thank you for your feedback!',
+      description: 'We appreciate your input and will use it to improve Informula.',
+    });
     setFeedback('');
     setRating(0);
     onClose();
@@ -77,9 +91,10 @@ const FeedbackModal: React.FC<FeedbackModalProps> = ({ isOpen, onClose }) => {
             <Button 
               type="submit"
               className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white py-3 rounded-xl transition-all duration-300 hover:scale-105"
+              disabled={loading}
             >
               <Send className="mr-2" size={20} />
-              Submit Feedback
+              {loading ? 'Submitting...' : 'Submit Feedback'}
             </Button>
           </form>
         </CardContent>
