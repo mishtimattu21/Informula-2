@@ -1,11 +1,11 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { UserButton } from '@clerk/nextjs';
+import { UserButton, useUser } from '@clerk/clerk-react';
 
 const MyDataPage: React.FC = () => {
   const navigate = useNavigate();
-  const { isSignedIn } = UserButton.useAuth();
+  const { isSignedIn } = useUser();
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
@@ -16,17 +16,9 @@ const MyDataPage: React.FC = () => {
         </p>
         <div className="text-gray-400 italic">(This is a placeholder. Integrate your data view here.)</div>
         {isSignedIn && (
-          <>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate('/my-data')}
-              className="rounded-full"
-            >
-              My Data
-            </Button>
+          <div className="flex justify-center mt-6">
             <UserButton afterSignOutUrl="/" />
-          </>
+          </div>
         )}
       </div>
     </div>

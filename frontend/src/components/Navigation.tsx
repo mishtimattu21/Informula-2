@@ -59,12 +59,6 @@ const Navigation: React.FC = () => {
                 <MessageSquare size={16} />
                 <span>Feedback</span>
               </button>
-              <button 
-                onClick={() => scrollToSection('contact')}
-                className="text-foreground/80 hover:text-foreground transition-colors"
-              >
-                Contact
-              </button>
             </div>
 
             <div className="flex items-center space-x-4">
