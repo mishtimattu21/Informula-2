@@ -4,17 +4,24 @@ import { Button } from '@/components/ui/button';
 import { Moon, Sun, MessageSquare } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import FeedbackModal from './FeedbackModal';
+import { useUser, UserButton } from '@clerk/clerk-react';
 
 const Navigation: React.FC = () => {
   const { theme, toggleTheme } = useTheme();
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
   const navigate = useNavigate();
+  const { isSignedIn } = useUser();
 
   const scrollToSection = (sectionId: string) => {
     const element = document.getElementById(sectionId);
     if (element) {
       element.scrollIntoView({ behavior: 'smooth' });
     }
+  };
+
+  // Handler for custom navigation in Clerk UserButton
+  const handleMyDataClick = () => {
+    navigate('/my-data');
   };
 
   return (
@@ -69,13 +76,27 @@ const Navigation: React.FC = () => {
               >
                 {theme === 'light' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
               </Button>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => navigate('/auth')}
-              >
-                Sign In
-              </Button>
+              {isSignedIn ? (
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => navigate('/my-data')}
+                    className="rounded-full"
+                  >
+                    My Data
+                  </Button>
+                  <UserButton afterSignOutUrl="/" />
+                </>
+              ) : (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => navigate('/auth')}
+                >
+                  Sign In
+                </Button>
+              )}
             </div>
           </div>
         </div>
