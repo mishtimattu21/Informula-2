@@ -1,29 +1,24 @@
-from supabase_client import get_user_profile
-from prompt_formatter import format_prompt
-from gemini_client import get_ingredient_report
-from processing import INGREDIENTS_TEXT
+"""
+Backend entrypoint.
+Running this file will start the API server that the frontend calls.
+PowerShell:
+  python backend_final/main.py --host 0.0.0.0 --port 8000
+"""
+
+import argparse
+import uvicorn
+
 
 def main():
-    # Sample user ID — must match one from your Supabase table
-    user_id = input("Enter user UUID: ").strip()
-    
-    # Step 1: Get user profile
-    user_profile = get_user_profile(user_id)
-    if not user_profile:
-        print("❌ User not found.")
-        return
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--host", default="0.0.0.0")
+    parser.add_argument("--port", type=int, default=8000)
+    args = parser.parse_args()
 
-    # Step 2: Use extracted text from image
-    ingredients_input = INGREDIENTS_TEXT
+    print("Starting Informula API server...")
+    # When running from the backend_final folder, reference the module directly
+    uvicorn.run("server:app", host=args.host, port=args.port, reload=True)
 
-    # Step 3: Format prompt
-    prompt = format_prompt(ingredients_input, user_profile)
-
-    # Step 4: Get Gemini response
-    print("\n🔄 Generating your safety analysis...\n")
-    result = get_ingredient_report(prompt)
-    print("✅ Result:\n")
-    print(result)
 
 if __name__ == "__main__":
     main()

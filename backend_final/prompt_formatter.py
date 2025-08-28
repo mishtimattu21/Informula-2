@@ -1,38 +1,45 @@
 def format_prompt(ingredients_input, user_profile):
     return f"""
-You are an expert ingredient safety analyst for personal care and food products. Given an ingredient list and user profile, produce a factual, user-personalized report with professional clarity.
+You are an expert ingredient safety analyst for personal care and food products. Given an ingredient list and a user profile, produce a factual, source-backed, user-personalized analysis that the frontend can render directly.
 
----
+STRICT OUTPUT RULES (do not include any prose before or after the JSON):
+- Return ONLY a single JSON object (no markdown fences, no comments).
+- Use the exact keys and value types in the schema below.
+- For each ingredient, include at least one reputable source (FDA, PubChem, EWG, CIR, peer‑reviewed articles). Prefer canonical titles with URLs or DOIs.
+- Write clear, human‑readable descriptions. Avoid hedging and generic disclaimers.
 
-🧪 Ingredients:
-{ingredients_input.strip()}
+INPUTS
+- Ingredients (raw list/text):\n{ingredients_input.strip()}
+- User Profile:
+  - age: {user_profile['age']}
+  - gender: {user_profile['gender']}
+  - past_medication: {', '.join(user_profile['past_medication'])}
+  - allergies: {', '.join(user_profile['allergies'])}
+  - avoid_list: {', '.join(user_profile['avoid_list'])}
 
-👤 User Profile:
-- Age: {user_profile['age']}
-- Gender: {user_profile['gender']}
-- Past Medications: {', '.join(user_profile['past_medication'])}
-- Allergies: {', '.join(user_profile['allergies'])}
-- Avoid List: {', '.join(user_profile['avoid_list'])}
+JSON SCHEMA (exact keys):
+{{
+  "overallScore": number,                     // 0–100
+  "riskLevel": "Low" | "Medium" | "High",   // overall risk band
+  "totalIngredients": number,
+  "flaggedIngredients": number,               // count of non-safe or user-flagged items
+  "insights": [
+    {{
+      "ingredient": string,
+      "risk": "safe" | "medium" | "high",  // for this ingredient
+      "description": string,                  // concise explanation tailored to user profile where relevant
+      "source": string,                       // primary source label (for quick display)
+      "sources": [string]                     // full list of citations/URLs/DOIs; include at least one
+    }}
+  ],
+  "initialAnalysis": string                   // a short, well-structured paragraph summarizing findings and actionable recommendations
+}}
 
----
+GUIDANCE FOR CONTENT
+- Compute totalIngredients from the parsed list; flaggedIngredients = count(risk != "safe" OR ingredient in user avoid_list OR allergy relevant).
+- Use the user profile to contextualize risks (e.g., allergies, medications, sensitivities) in each ingredient's description.
+- When uncertain about concentration, assume typical cosmetic/food use levels and state the basis briefly.
+- Keep descriptions specific (what it is, why rated, user-relevant note).
 
-🎯 Objective:
-Generate a summarized safety report, broken into **exactly six sections**.
-
-You must use the user profile **to infer risks**, not ask for more info. Make expert-level assumptions if something is missing. Avoid vague disclaimers like "needs more context" or "cannot determine".
-
----
-
-📝 Format of the response:
-
-1. ✅❗🚫 **Categorize each ingredient** (Safe ✅, Caution ⚠️, Dangerous 🚫). Mention typical uses and why the rating is given.
-2. 🧬 **User-specific risks**: Based on allergies, age, past medication, and avoid list — explain clearly if there's a problem.
-3. 🌍 **Banned Countries**: Only list if the ingredient is restricted in 1+ prominent countries (max 5). If not applicable, skip this section entirely.
-4. 📚 **Recent Studies**: Mention any relevant studies from 2020–2024. If not found, skip this section.
-5. 📏 **Safe Usage Thresholds**: How much and how often can it be safely used or consumed? (E.g., max 2 times/week)
-6. ⚠️ **Interaction Warnings**: What not to combine it with (e.g., acids, dairy, alcohol, other chemicals/foods).
-
----
-
-Be direct, practical, and concise. Format in clean bullet points.
+Return ONLY the JSON object, nothing else.
 """

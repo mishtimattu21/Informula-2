@@ -5,6 +5,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Upload, Camera } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { analyzeImageFile, analyzeImage, analyzeText } from '@/services/api';
 import { useTheme } from '../components/ThemeProvider';
 import { toast } from '@/hooks/use-toast';
 import CameraInterface from '../components/CameraInterface';
@@ -67,7 +68,7 @@ const DecodePage: React.FC = () => {
     });
   };
 
-  const handleAnalyze = () => {
+  const handleAnalyze = async () => {
     if (activeTab === 'type' && !ingredients.trim()) {
       toast({
         title: "No ingredients entered",
@@ -100,10 +101,28 @@ const DecodePage: React.FC = () => {
       description: "Processing your ingredients with AI.",
     });
 
-    // Simulate analysis delay
-    setTimeout(() => {
-      navigate('/results');
-    }, 2000);
+    try {
+      // Placeholder for user id; integrate with auth if available
+      const userId = undefined;
+      let result: any;
+      if (activeTab === 'upload' && uploadedFile) {
+        result = await analyzeImageFile(uploadedFile, userId, productName, productQuery);
+      } else if (activeTab === 'scan' && capturedImage) {
+        result = await analyzeImage(capturedImage, userId, productName, productQuery);
+      } else if (activeTab === 'type') {
+        result = await analyzeText(ingredients, userId, productName, productQuery);
+      }
+
+      if (!result) throw new Error('No result');
+      // Ensure object if backend returns JSON string
+      if (typeof result === 'string') {
+        try { result = JSON.parse(result); } catch {}
+      }
+      // Persist to navigation state or a store; navigating with state for now
+      navigate('/results', { state: { analysis: result } });
+    } catch (err: any) {
+      toast({ title: 'Analysis failed', description: err.message || String(err), variant: 'destructive' });
+    }
   };
 
   return (

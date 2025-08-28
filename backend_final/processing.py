@@ -13,11 +13,11 @@ load_dotenv()
 
 # Debug prints
 print("ENDPOINT:", os.getenv("ENDPOINT"))
-print("AZURE_API_KEY:", os.getenv("AZURE_API_KEY"))
+print("AZURE_API_KEY:", "***MASKED***" if os.getenv("AZURE_API_KEY") else None)
 
 # ✅ Use uploaded file name (e.g., 'image1.jpg')
 # local_image_path = next(iter(uploaded))
-local_image_path="Informula\public\ trial.jpg"
+local_image_path="Informula\\public\\ trial.jpg"
 # ✅ Display the image
 if not os.path.exists(local_image_path):
     raise FileNotFoundError(f"Image file '{local_image_path}' not found.")
