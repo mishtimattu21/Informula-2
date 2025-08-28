@@ -40,7 +40,7 @@ const HeroSection: React.FC = () => {
         }
       `}</style>
       
-      <section className="relative min-h-screen flex flex-col bg-background dark:bg-gradient-to-br dark:from-black dark:via-gray-950 dark:to-gray-900 overflow-hidden">
+      <section className="relative h-svh flex flex-col bg-background dark:bg-gradient-to-br dark:from-black dark:via-gray-950 dark:to-gray-900 overflow-hidden">
 
         {/* Text Content */}
         <div className="container mx-auto px-4 text-center pt-20 md:pt-24 relative z-10">
@@ -70,23 +70,22 @@ const HeroSection: React.FC = () => {
             </Button>
             
              {/* Chemistry Image - Different for Light/Dark Mode */}
-            <div className="mt-6 flex justify-center">
+            <div className="mt-auto mb-16 md:mb-24 flex justify-center px-4">
               <img 
                 src="/chem1.png" 
                 alt="Chemistry Analysis - Light Mode" 
-                className="max-w-7xl w-full h-auto dark:hidden"
+                className="max-w-7xl w-full h-auto max-h-[40svh] object-contain dark:hidden"
               />
               <img 
                 src="/chem2.png" 
                 alt="Chemistry Analysis - Dark Mode" 
-                className="max-w-7xl w-full h-auto hidden dark:block"
+                className="max-w-7xl w-full h-auto max-h-[40svh] object-contain hidden dark:block"
               />
             </div>
           </div>
         </div>
 
         {/* Bottom Decorative Section */}
-        <div className="flex-grow"></div>
         <div className="absolute inset-x-0 bottom-0 w-full h-48 bg-gradient-to-t from-emerald-300/50 to-transparent dark:from-emerald-500/30 dark:to-transparent pointer-events-none">
         </div>
       </section>
