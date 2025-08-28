@@ -19,20 +19,21 @@ INPUTS
 
 JSON SCHEMA (exact keys):
 {{
-  "overallScore": number,                     // 0–100
-  "riskLevel": "Low" | "Medium" | "High",   // overall risk band
+  "overallScore": number,
+  "riskLevel": "Low" | "Medium" | "High",
   "totalIngredients": number,
-  "flaggedIngredients": number,               // count of non-safe or user-flagged items
+  "flaggedIngredients": number,
   "insights": [
     {{
       "ingredient": string,
-      "risk": "safe" | "medium" | "high",  // for this ingredient
-      "description": string,                  // concise explanation tailored to user profile where relevant
-      "source": string,                       // primary source label (for quick display)
-      "sources": [string]                     // full list of citations/URLs/DOIs; include at least one
+      "risk": "safe" | "medium" | "high",
+      "description": string,
+      "source": string,
+      "sources": [string]
     }}
   ],
-  "initialAnalysis": string                   // a short, well-structured paragraph summarizing findings and actionable recommendations
+  "initialAnalysis": string,
+  "recommendations": [string]
 }}
 
 GUIDANCE FOR CONTENT
@@ -40,6 +41,7 @@ GUIDANCE FOR CONTENT
 - Use the user profile to contextualize risks (e.g., allergies, medications, sensitivities) in each ingredient's description.
 - When uncertain about concentration, assume typical cosmetic/food use levels and state the basis briefly.
 - Keep descriptions specific (what it is, why rated, user-relevant note).
+ - Provide exactly 3 recommendations, each 6–14 words, specific and actionable.
 
 Return ONLY the JSON object, nothing else.
 """
