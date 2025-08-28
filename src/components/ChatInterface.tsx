@@ -14,9 +14,11 @@ interface Message {
 
 interface ChatInterfaceProps {
   initialAnalysis?: string;
+  heightPx?: number;
+  recommendations?: string[];
 }
 
-const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialAnalysis }) => {
+const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialAnalysis, heightPx, recommendations }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -24,14 +26,21 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialAnalysis }) => {
 
   useEffect(() => {
     if (initialAnalysis) {
+      const defaultRecs = [
+        'Prefer gentler, less‑irritating alternatives when possible.',
+        'Look for paraben‑free and fragrance‑free options if sensitive.',
+        'Patch‑test new products and introduce one at a time.'
+      ];
+      const recs = (recommendations && recommendations.length > 0 ? recommendations : defaultRecs).slice(0, 3);
+      const recText = recs.length ? `\n\nRecommendations:\n- ${recs.join('\n- ')}` : '';
       setMessages([{
         id: '1',
-        content: initialAnalysis,
+        content: `${initialAnalysis}${recText}`,
         sender: 'ai',
         timestamp: new Date()
       }]);
     }
-  }, [initialAnalysis]);
+  }, [initialAnalysis, recommendations]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -84,7 +93,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialAnalysis }) => {
   };
 
   return (
-    <Card className="h-96 flex flex-col border-2 border-emerald-200 dark:border-emerald-800">
+    <Card className="flex flex-col border-2 border-emerald-200 dark:border-emerald-800" style={{ height: heightPx ? `${heightPx}px` : undefined }}>
       <CardContent className="flex flex-col h-full p-4">
         <div className="flex items-center gap-2 mb-4 pb-3 border-b">
           <MessageSquare className="w-5 h-5 text-emerald-500" />
@@ -104,7 +113,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialAnalysis }) => {
                     : 'bg-gray-100 dark:bg-gray-800 text-foreground'
                 }`}
               >
-                <p className="text-sm">{message.content}</p>
+                <p className="text-sm whitespace-pre-line">{message.content}</p>
                 <span className="text-xs opacity-70 mt-1 block">
                   {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </span>

@@ -1,16 +1,18 @@
 
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, AlertTriangle, CheckCircle, Info, Lightbulb } from 'lucide-react';
 import ChatInterface from '../components/ChatInterface';
 
 const ResultsPage: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const apiAnalysis = (location && (location as any).state && (location as any).state.analysis) ? (location as any).state.analysis : undefined;
 
-  const analysisData = {
+  const analysisRaw = apiAnalysis && typeof apiAnalysis === 'object' ? apiAnalysis : {
     overallScore: 78,
     riskLevel: 'Medium',
     totalIngredients: 12,
@@ -20,38 +22,90 @@ const ResultsPage: React.FC = () => {
         ingredient: 'Sodium Lauryl Sulfate',
         risk: 'medium',
         description: 'Common surfactant that may cause skin irritation in sensitive individuals.',
-        source: 'FDA Safety Database'
+        source: 'FDA Safety Database',
+        sources: []
       },
       {
         ingredient: 'Methylparaben',
         risk: 'low',
         description: 'Preservative with potential endocrine disruption concerns.',
-        source: 'Environmental Working Group'
+        source: 'Environmental Working Group',
+        sources: []
       },
       {
         ingredient: 'Vitamin E (Tocopherol)',
         risk: 'safe',
         description: 'Natural antioxidant that helps preserve product freshness.',
-        source: 'Scientific Literature'
+        source: 'Scientific Literature',
+        sources: []
       }
-    ]
+    ],
+    initialAnalysis: 'Analysis summary unavailable.'
+  };
+  // Normalize to robust types
+  const analysisData = {
+    overallScore: Number((analysisRaw as any).overallScore ?? 0),
+    riskLevel: (analysisRaw as any).riskLevel ?? 'Medium',
+    totalIngredients: Number((analysisRaw as any).totalIngredients ?? 0),
+    flaggedIngredients: Number((analysisRaw as any).flaggedIngredients ?? 0),
+    insights: Array.isArray((analysisRaw as any).insights) ? (analysisRaw as any).insights : [],
+    initialAnalysis: (analysisRaw as any).initialAnalysis ?? ''
   };
 
-  const initialAnalysis = `Based on my analysis of the 12 ingredients in this product, I've identified 3 ingredients that require attention based on your health profile:
+  const initialAnalysis = analysisData.initialAnalysis || '';
 
-**Overall Assessment:** Medium Risk (Score: 78/100)
+  const ingredientRef = useRef<HTMLDivElement | null>(null);
+  const overallRef = useRef<HTMLDivElement | null>(null);
+  const [chatHeight, setChatHeight] = useState<number | undefined>(undefined);
+  const breakdownContentRef = useRef<HTMLDivElement | null>(null);
+  const [breakdownMaxPx, setBreakdownMaxPx] = useState<number | undefined>(undefined);
 
-**Key Findings:**
-• Sodium Lauryl Sulfate may cause skin irritation given your sensitive skin profile
-• Methylparaben detected - you indicated preference to avoid preservatives
-• Most other ingredients are considered safe for your dietary preferences
+  useEffect(() => {
+    const ing = ingredientRef.current;
+    const ovl = overallRef.current;
+    if (!ing && !ovl) return;
 
-**Recommendations:**
-• Consider alternatives with gentler surfactants like Cocamidopropyl Betaine
-• Look for paraben-free versions of this product type
-• The antioxidants present (Vitamin E) are beneficial for product stability
+    const update = () => {
+      const ingH = ing ? ing.getBoundingClientRect().height : 0;
+      const ovlH = ovl ? ovl.getBoundingClientRect().height : 0;
+      const ingMarginTop = ing ? parseFloat(getComputedStyle(ing).marginTop || '0') : 0; // gap from space-y-*
+      setChatHeight(ingH + ovlH + ingMarginTop);
+    };
 
-Feel free to ask me specific questions about any ingredient or health concern!`;
+    update();
+
+    const ro = new ResizeObserver(() => update());
+    if (ing) ro.observe(ing);
+    if (ovl) ro.observe(ovl);
+
+    window.addEventListener('resize', update);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener('resize', update);
+    };
+  }, []);
+
+  // Compute max height so exactly three ingredient items fit; if more than 3, scroll
+  useEffect(() => {
+    const content = breakdownContentRef.current;
+    if (!content) return;
+    const items = Array.from(content.querySelectorAll('.ingredient-item')) as HTMLElement[];
+    if (items.length === 0) return;
+    // Sum heights of first three items plus vertical gaps from computed styles
+    const count = Math.min(3, items.length);
+    let total = 0;
+    for (let i = 0; i < count; i++) {
+      const el = items[i];
+      const rect = el.getBoundingClientRect();
+      total += rect.height;
+      if (i < count - 1) {
+        const style = getComputedStyle(content);
+        const gap = parseFloat(style.rowGap || style.gap || '0');
+        total += isNaN(gap) ? 0 : gap;
+      }
+    }
+    setBreakdownMaxPx(total);
+  }, [analysisData.insights]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-emerald-50/30 to-teal-50/40 dark:from-background dark:via-emerald-950/20 dark:to-teal-950/30">
@@ -95,123 +149,96 @@ Feel free to ask me specific questions about any ingredient or health concern!`;
             {/* Analysis Results */}
             <div className="space-y-6">
               {/* Overall Score */}
-              <Card className="border-2 border-emerald-200 dark:border-emerald-800">
-                <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    Overall Safety Score
-                    <Badge variant={analysisData.riskLevel === 'Low' ? 'default' : 'secondary'}>
-                      {analysisData.riskLevel} Risk
-                    </Badge>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center space-x-4">
-                    <div className="text-4xl font-bold text-emerald-600">
-                      {analysisData.overallScore}
-                    </div>
-                    <div className="flex-1">
-                      <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
-                        <div 
-                          className="bg-gradient-to-r from-emerald-500 to-teal-500 h-3 rounded-full transition-all duration-1000"
-                          style={{ width: `${analysisData.overallScore}%` }}
-                        />
-                      </div>
-                      <p className="text-sm text-foreground/70 mt-2">
-                        {analysisData.flaggedIngredients} of {analysisData.totalIngredients} ingredients flagged
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Ingredient Analysis */}
-              <Card className="border-2 border-emerald-200 dark:border-emerald-800">
-                <CardHeader>
-                  <CardTitle>Ingredient Breakdown</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {analysisData.insights.map((insight, index) => (
-                    <div key={index} className="flex items-start space-x-3 p-4 rounded-xl bg-gray-50 dark:bg-gray-800/50">
-                      <div className="mt-1">
-                        {insight.risk === 'safe' ? (
-                          <CheckCircle className="w-5 h-5 text-emerald-500" />
-                        ) : insight.risk === 'medium' ? (
-                          <AlertTriangle className="w-5 h-5 text-yellow-500" />
-                        ) : (
-                          <Info className="w-5 h-5 text-blue-500" />
-                        )}
+              <div ref={overallRef}>
+                <Card className="border-2 border-emerald-200 dark:border-emerald-800">
+                  <CardHeader>
+                    <CardTitle className="flex items-center justify-between">
+                      Overall Safety Score
+                      <Badge variant={analysisData.riskLevel === 'Low' ? 'default' : 'secondary'}>
+                        {analysisData.riskLevel || 'Medium'} Risk
+                      </Badge>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center space-x-4">
+                      <div className="text-4xl font-bold text-emerald-600">
+                        {isNaN(analysisData.overallScore) ? '-' : analysisData.overallScore}
                       </div>
                       <div className="flex-1">
-                        <h4 className="font-semibold text-sm">{insight.ingredient}</h4>
-                        <p className="text-sm text-foreground/70 mt-1">{insight.description}</p>
-                        <p className="text-xs text-foreground/50 mt-2">Source: {insight.source}</p>
+                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
+                          <div 
+                            className="bg-gradient-to-r from-emerald-500 to-teal-500 h-3 rounded-full transition-all duration-1000"
+                            style={{ width: `${Math.max(0, Math.min(100, analysisData.overallScore || 0))}%` }}
+                          />
+                        </div>
+                        <p className="text-sm text-foreground/70 mt-2">
+                          {(analysisData.flaggedIngredients || 0)} of {(analysisData.totalIngredients || 0)} ingredients flagged
+                        </p>
                       </div>
                     </div>
-                  ))}
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              </div>
 
-              {/* Recommendations */}
-              <Card className="border-2 border-emerald-200 dark:border-emerald-800">
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <Lightbulb className="mr-2 w-5 h-5 text-yellow-500" />
-                    Personalized Recommendations
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    <div className="p-3 bg-emerald-50 dark:bg-emerald-950/30 rounded-lg">
-                      <p className="text-sm">✓ Consider sulfate-free alternatives for sensitive skin</p>
-                    </div>
-                    <div className="p-3 bg-emerald-50 dark:bg-emerald-950/30 rounded-lg">
-                      <p className="text-sm">✓ Look for products with natural preservatives</p>
-                    </div>
-                    <div className="p-3 bg-emerald-50 dark:bg-emerald-950/30 rounded-lg">
-                      <p className="text-sm">✓ The antioxidants present are beneficial for your skin type</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+              {/* Ingredient Analysis */}
+              <div ref={ingredientRef}>
+                <Card className="border-2 border-emerald-200 dark:border-emerald-800">
+                  <CardHeader>
+                    <CardTitle>Ingredient Breakdown</CardTitle>
+                  </CardHeader>
+                  <CardContent ref={breakdownContentRef} className="space-y-5 overflow-y-auto pr-1" style={{ maxHeight: breakdownMaxPx ? `${breakdownMaxPx}px` : undefined }}>
+                    {[...(analysisData.insights || [])]
+                      .sort((a: any, b: any) => {
+                        const rank = (risk: string) => {
+                          const r = (risk || '').toLowerCase();
+                          if (r === 'high') return 3;
+                          if (r === 'medium') return 2;
+                          if (r === 'low') return 1;
+                          if (r === 'safe') return 0;
+                          return 0;
+                        };
+                        return rank(b.risk) - rank(a.risk);
+                      })
+                      .map((insight: any, index: number) => (
+                      <div key={index} className="ingredient-item flex items-start space-x-4 p-5 rounded-2xl bg-gray-50 dark:bg-gray-800/50">
+                        <div className="mt-1">
+                          {(() => {
+                            const r = (insight.risk || '').toLowerCase();
+                            if (r === 'safe' || r === 'low') {
+                              return <CheckCircle className="w-6 h-6 text-emerald-500" />;
+                            }
+                            if (r === 'high') {
+                              return <AlertTriangle className="w-6 h-6 text-red-500" />;
+                            }
+                            if (r === 'medium') {
+                              return <AlertTriangle className="w-6 h-6 text-yellow-500" />;
+                            }
+                            return <Info className="w-6 h-6 text-blue-500" />;
+                          })()}
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="font-semibold text-base">{insight.ingredient}</h4>
+                          <p className="text-sm text-foreground/70 mt-1">{insight.description}</p>
+                          <p className="text-xs text-foreground/50 mt-2">Source: {insight.source}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              </div>
             </div>
 
             {/* Chat Interface */}
             <div className="space-y-6">
-              <ChatInterface initialAnalysis={initialAnalysis} />
-              
-              {/* Quick Actions */}
-              <Card className="border-2 border-emerald-200 dark:border-emerald-800">
-                <CardHeader>
-                  <CardTitle>Quick Actions</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <Button 
-                    onClick={() => navigate('/decode')}
-                    variant="outline" 
-                    className="w-full justify-start rounded-xl"
-                  >
-                    Analyze Another Product
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    className="w-full justify-start rounded-xl"
-                  >
-                    Save to My Profile
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    className="w-full justify-start rounded-xl"
-                  >
-                    Share Results
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    className="w-full justify-start rounded-xl"
-                  >
-                    Find Alternatives
-                  </Button>
-                </CardContent>
-              </Card>
+              <ChatInterface 
+                initialAnalysis={initialAnalysis} 
+                heightPx={chatHeight}
+                recommendations={[
+                  'Prefer gentler, less‑irritating alternatives when possible.',
+                  'Look for paraben‑free and fragrance‑free options if sensitive.',
+                  'Patch‑test new products and introduce one at a time.'
+                ]}
+              />
             </div>
           </div>
         </div>
