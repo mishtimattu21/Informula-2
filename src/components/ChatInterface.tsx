@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Send, MessageSquare } from 'lucide-react';
+import { chatAsk } from '@/services/api';
 
 interface Message {
   id: string;
@@ -26,12 +27,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialAnalysis, heightPx
 
   useEffect(() => {
     if (initialAnalysis) {
-      const defaultRecs = [
-        'Prefer gentler, less‑irritating alternatives when possible.',
-        'Look for paraben‑free and fragrance‑free options if sensitive.',
-        'Patch‑test new products and introduce one at a time.'
-      ];
-      const recs = (recommendations && recommendations.length > 0 ? recommendations : defaultRecs).slice(0, 3);
+      const recs = (recommendations && recommendations.length > 0 ? recommendations : []).slice(0, 3);
       const recText = recs.length ? `\n\nRecommendations:\n- ${recs.join('\n- ')}` : '';
       setMessages([{
         id: '1',
@@ -60,17 +56,27 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialAnalysis, heightPx
     setInputValue('');
     setIsTyping(true);
 
-    // Simulate AI response
-    setTimeout(() => {
+    try {
+      const history = [...messages, userMessage].map(m => ({ role: (m.sender === 'user' ? 'user' : 'ai') as 'user' | 'ai', content: m.content }));
+      const resp = await chatAsk(inputValue, history, initialAnalysis);
       const aiResponse: Message = {
         id: (Date.now() + 1).toString(),
-        content: getAIResponse(inputValue),
+        content: resp.answer,
         sender: 'ai',
         timestamp: new Date()
       };
       setMessages(prev => [...prev, aiResponse]);
+    } catch (e: any) {
+      const aiResponse: Message = {
+        id: (Date.now() + 1).toString(),
+        content: 'Sorry, I had trouble answering that. Please try again.',
+        sender: 'ai',
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, aiResponse]);
+    } finally {
       setIsTyping(false);
-    }, 1500);
+    }
   };
 
   const getAIResponse = (userInput: string): string => {

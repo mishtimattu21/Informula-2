@@ -52,4 +52,14 @@ export async function analyzeText(ingredients: string, userId?: string, productN
   return res.json();
 }
 
+export async function chatAsk(question: string, history: { role: 'user' | 'ai'; content: string }[], initialAnalysis?: string, userId?: string): Promise<{ answer: string }> {
+  const res = await fetch(`${API_BASE}/api/chat`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ question, history, initialAnalysis, userId })
+  });
+  if (!res.ok) throw new Error(`Chat failed: ${res.status}`);
+  return res.json();
+}
+
 

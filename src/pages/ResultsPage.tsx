@@ -60,6 +60,21 @@ const ResultsPage: React.FC = () => {
   const breakdownContentRef = useRef<HTMLDivElement | null>(null);
   const [breakdownMaxPx, setBreakdownMaxPx] = useState<number | undefined>(undefined);
 
+  // Compute deterministic score and risk band from insight risks
+  const risks = (analysisData.insights || []).map((i: any) => (i?.risk || '').toLowerCase());
+  const numHigh = risks.filter(r => r === 'high').length;
+  const numMedium = risks.filter(r => r === 'medium').length;
+  const numLow = risks.filter(r => r === 'low').length;
+  const numSafe = risks.filter(r => r === 'safe').length;
+  const totalCount = analysisData.totalIngredients || (analysisData.insights ? analysisData.insights.length : 0);
+  const flaggedCount = (numHigh + numMedium + numLow);
+
+  // Weighted deduction model (three categories)
+  // High = 30, Medium = 15, Low = 5 points deducted from 100
+  const rawScore = 100 - (numHigh * 30 + numMedium * 15 + numLow * 5);
+  const computedScore = Math.max(1, Math.min(100, isNaN(rawScore) ? 0 : rawScore));
+  const computedRiskLevel = computedScore >= 80 ? 'Low' : computedScore >= 50 ? 'Medium' : 'High';
+
   useEffect(() => {
     const ing = ingredientRef.current;
     const ovl = overallRef.current;
@@ -154,25 +169,25 @@ const ResultsPage: React.FC = () => {
                   <CardHeader>
                     <CardTitle className="flex items-center justify-between">
                       Overall Safety Score
-                      <Badge variant={analysisData.riskLevel === 'Low' ? 'default' : 'secondary'}>
-                        {analysisData.riskLevel || 'Medium'} Risk
+                      <Badge variant={computedRiskLevel === 'Low' ? 'default' : 'secondary'}>
+                        {computedRiskLevel} Risk
                       </Badge>
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="flex items-center space-x-4">
                       <div className="text-4xl font-bold text-emerald-600">
-                        {isNaN(analysisData.overallScore) ? '-' : analysisData.overallScore}
+                        {isNaN(computedScore) ? '-' : computedScore}
                       </div>
                       <div className="flex-1">
                         <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
                           <div 
                             className="bg-gradient-to-r from-emerald-500 to-teal-500 h-3 rounded-full transition-all duration-1000"
-                            style={{ width: `${Math.max(0, Math.min(100, analysisData.overallScore || 0))}%` }}
+                            style={{ width: `${Math.max(0, Math.min(100, computedScore || 0))}%` }}
                           />
                         </div>
                         <p className="text-sm text-foreground/70 mt-2">
-                          {(analysisData.flaggedIngredients || 0)} of {(analysisData.totalIngredients || 0)} ingredients flagged
+                          {(flaggedCount || 0)} of {(totalCount || 0)} ingredients flagged
                         </p>
                       </div>
                     </div>
@@ -233,11 +248,7 @@ const ResultsPage: React.FC = () => {
               <ChatInterface 
                 initialAnalysis={initialAnalysis} 
                 heightPx={chatHeight}
-                recommendations={[
-                  'Prefer gentler, less‑irritating alternatives when possible.',
-                  'Look for paraben‑free and fragrance‑free options if sensitive.',
-                  'Patch‑test new products and introduce one at a time.'
-                ]}
+                recommendations={(analysisData as any).recommendations}
               />
             </div>
           </div>
