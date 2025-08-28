@@ -41,31 +41,6 @@ const HeroSection: React.FC = () => {
       `}</style>
       
       <section className="relative min-h-screen flex flex-col bg-gradient-to-br from-white via-emerald-50/30 to-green-50/50 dark:bg-gradient-to-br dark:from-black dark:via-gray-950 dark:to-gray-900 overflow-hidden">
-        {/* Decorative Background Elements */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          {/* Floating Molecular Structures */}
-          <div className="absolute top-20 left-10 w-32 h-32 bg-emerald-100/30 dark:bg-emerald-900/20 rounded-full blur-xl animate-pulse"></div>
-          <div className="absolute top-40 right-20 w-24 h-24 bg-teal-100/40 dark:bg-teal-900/30 rounded-full blur-lg animate-pulse delay-1000"></div>
-          <div className="absolute bottom-60 left-20 w-40 h-40 bg-green-100/20 dark:bg-green-900/15 rounded-full blur-2xl animate-pulse delay-2000"></div>
-          <div className="absolute bottom-40 right-10 w-28 h-28 bg-emerald-200/25 dark:bg-emerald-800/20 rounded-full blur-xl animate-pulse delay-500"></div>
-          
-          {/* Hexagonal Pattern */}
-          <div className="absolute top-1/3 left-1/4 transform -translate-x-1/2 -translate-y-1/2">
-            <div className="w-16 h-16 border-2 border-emerald-200/30 dark:border-emerald-700/30 transform rotate-45 animate-spin-slow"></div>
-          </div>
-          <div className="absolute bottom-1/2 right-1/4 transform translate-x-1/2 translate-y-1/2">
-            <div className="w-12 h-12 border-2 border-teal-200/40 dark:border-teal-700/40 transform rotate-12 animate-spin-slow"></div>
-          </div>
-          
-          {/* Grid Pattern */}
-          <div className="absolute inset-0 opacity-5 dark:opacity-10">
-            <div className="grid grid-cols-12 gap-px h-full w-full">
-              {Array.from({ length: 144 }, (_, i) => (
-                <div key={i} className="bg-emerald-400 dark:bg-emerald-600"></div>
-              ))}
-            </div>
-          </div>
-        </div>
 
         {/* Text Content */}
         <div className="container mx-auto px-4 text-center pt-20 md:pt-24 relative z-10">
@@ -112,7 +87,7 @@ const HeroSection: React.FC = () => {
 
         {/* Bottom Decorative Section */}
         <div className="flex-grow"></div>
-        <div className="relative w-full h-32 bg-gradient-to-t from-emerald-100/50 to-transparent dark:from-emerald-900/30 dark:to-transparent">
+        <div className="absolute inset-x-0 bottom-0 w-full h-48 bg-gradient-to-t from-emerald-300/50 to-transparent dark:from-emerald-500/30 dark:to-transparent pointer-events-none">
         </div>
       </section>
     </>
