@@ -18,8 +18,8 @@ const AboutSection: React.FC = () => {
 
           <div className="grid md:grid-cols-3 gap-8 mt-16">
             <div className="text-center">
-              <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-2xl flex items-center justify-center">
-                <span className="text-2xl text-white">🔬</span>
+              <div className="mx-auto mb-4 flex items-center justify-center">
+                <img src="/science_green_light.png" alt="Science-Backed" className="w-24 h-24 object-contain" />
               </div>
               <h3 className="text-xl font-semibold mb-2">Science-Backed</h3>
               <p className="text-foreground/70">
@@ -28,8 +28,8 @@ const AboutSection: React.FC = () => {
             </div>
 
             <div className="text-center">
-              <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-2xl flex items-center justify-center">
-                <span className="text-2xl text-white">⚡</span>
+              <div className="mx-auto mb-4 flex items-center justify-center">
+                <img src="/instant_green_light.png" alt="Instant Analysis" className="w-24 h-24 object-contain" />
               </div>
               <h3 className="text-xl font-semibold mb-2">Instant Analysis</h3>
               <p className="text-foreground/70">
@@ -38,8 +38,8 @@ const AboutSection: React.FC = () => {
             </div>
 
             <div className="text-center">
-              <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-2xl flex items-center justify-center">
-                <span className="text-2xl text-white">🎯</span>
+              <div className="mx-auto mb-4 flex items-center justify-center">
+                <img src="/personalize_green_light.png" alt="Personalized" className="w-24 h-24 object-contain" />
               </div>
               <h3 className="text-xl font-semibold mb-2">Personalized</h3>
               <p className="text-foreground/70">

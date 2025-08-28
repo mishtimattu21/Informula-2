@@ -40,7 +40,7 @@ const HeroSection: React.FC = () => {
         }
       `}</style>
       
-      <section className="relative min-h-screen flex flex-col bg-gradient-to-br from-white via-emerald-50/30 to-green-50/50 dark:bg-gradient-to-br dark:from-black dark:via-gray-950 dark:to-gray-900 overflow-hidden">
+      <section className="relative min-h-screen flex flex-col bg-background dark:bg-gradient-to-br dark:from-black dark:via-gray-950 dark:to-gray-900 overflow-hidden">
 
         {/* Text Content */}
         <div className="container mx-auto px-4 text-center pt-20 md:pt-24 relative z-10">
@@ -74,12 +74,12 @@ const HeroSection: React.FC = () => {
               <img 
                 src="/chem1.png" 
                 alt="Chemistry Analysis - Light Mode" 
-                className="max-w-6xl w-full h-auto dark:hidden"
+                className="max-w-7xl w-full h-auto dark:hidden"
               />
               <img 
                 src="/chem2.png" 
                 alt="Chemistry Analysis - Dark Mode" 
-                className="max-w-6xl w-full h-auto hidden dark:block"
+                className="max-w-7xl w-full h-auto hidden dark:block"
               />
             </div>
           </div>

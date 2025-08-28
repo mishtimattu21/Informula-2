@@ -1,59 +1,59 @@
-import { Brain, Camera, Database, Bell, FileDown, Smartphone, Zap, Users } from 'lucide-react';
+ 
 
 const features = [
   {
     title: 'AI-Powered Analysis',
     description: 'Advanced machine learning algorithms analyze thousands of ingredients in seconds',
-    icon: Brain,
+    image: '/ai_powered.png',
     gradient: 'from-emerald-500 to-teal-500',
     className: 'lg:col-span-2 lg:row-span-2',
   },
   {
     title: 'Smart Scanning',
     description: 'Instant ingredient extraction from any product label',
-    icon: Camera,
+    image: '/smart_scan.png',
     gradient: 'from-blue-500 to-cyan-500',
     className: 'lg:col-span-1',
   },
   {
     title: 'Safety Database',
     description: '50,000+ ingredients with scientific safety ratings',
-    icon: Database,
+    image: '/safety_database.png',
     gradient: 'from-purple-500 to-pink-500',
     className: 'lg:col-span-1',
   },
   {
     title: 'Personal Alerts',
     description: 'Custom notifications for your specific allergies and concerns',
-    icon: Bell,
+    image: '/alerts.png',
     gradient: 'from-orange-500 to-red-500',
     className: 'lg:col-span-1',
   },
   {
     title: 'Export Reports',
     description: 'Download detailed analysis reports for your records',
-    icon: FileDown,
+    image: '/export_reports.png',
     gradient: 'from-green-500 to-emerald-500',
     className: 'lg:col-span-1',
   },
   {
     title: 'Mobile App',
     description: 'Scan products on-the-go with our mobile application',
-    icon: Smartphone,
+    image: '/mobile_app.png',
     gradient: 'from-indigo-500 to-purple-500',
     className: 'lg:col-span-1',
   },
   {
     title: 'Real-time Updates',
     description: 'Latest research and regulatory changes instantly reflected',
-    icon: Zap,
+    image: '/realtime.png',
     gradient: 'from-yellow-500 to-orange-500',
     className: 'lg:col-span-1',
   },
   {
     title: 'Community Insights',
     description: 'Join thousands making informed choices about product safety',
-    icon: Users,
+    image: '/community.png',
     gradient: 'from-pink-500 to-rose-500',
     className: 'lg:col-span-2',
   }
@@ -76,7 +76,6 @@ const FeaturesSection = () => {
         {/* Elegant Bento Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 lg:grid-rows-3 gap-6 max-w-6xl mx-auto">
           {features.map((feature, index) => {
-            const Icon = feature.icon;
             const isLarge = feature.className.includes('lg:row-span-2');
 
             return (
@@ -85,12 +84,12 @@ const FeaturesSection = () => {
                 className={`group relative overflow-hidden rounded-2xl p-6 border transition-all duration-500 cursor-pointer bg-white/60 dark:bg-gray-800/60 border-gray-200/50 dark:border-gray-700/50 hover:bg-white dark:hover:bg-gray-800 hover:border-emerald-200 dark:hover:border-emerald-700 hover:shadow-xl hover:shadow-emerald-500/10 hover:-translate-y-1 ${feature.className}`}
                 style={{ animationDelay: `${index * 100}ms` }}
               >
-                {/* Subtle Gradient Background */}
-                <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} opacity-0 group-hover:opacity-5 transition-opacity duration-500`}></div>
+                {/* Subtle Gradient Background (standardized to emerald on hover) */}
+                <div className={`absolute inset-0 bg-gradient-to-br from-emerald-500 to-emerald-400 opacity-0 group-hover:opacity-5 transition-opacity duration-500`}></div>
                 
-                {/* Icon */}
-                <div className={`relative w-12 h-12 rounded-xl bg-gradient-to-br ${feature.gradient} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300 ${isLarge ? 'w-16 h-16 mb-6' : ''}`}>
-                  <Icon className={`text-white ${isLarge ? 'w-8 h-8' : 'w-6 h-6'}`} />
+                {/* Icon Image (left-aligned, no colored box, larger image) */}
+                <div className={`relative flex items-center justify-start mb-4 group-hover:scale-110 transition-transform duration-300 ${isLarge ? 'mb-6' : ''}`}>
+                  <img src={feature.image} alt={feature.title} className={`${isLarge ? 'w-20 h-20' : 'w-14 h-14'} object-contain`} />
                 </div>
 
                 {/* Content */}
@@ -103,9 +102,9 @@ const FeaturesSection = () => {
                   </p>
                 </div>
 
-                {/* Hover Glow Effect */}
+                {/* Hover Glow Effect (standardized to emerald) */}
                 <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none">
-                  <div className={`absolute inset-0 rounded-2xl bg-gradient-to-br ${feature.gradient} blur-xl opacity-10`}></div>
+                  <div className={`absolute inset-0 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-400 blur-xl opacity-10`}></div>
                 </div>
               </div>
             );
