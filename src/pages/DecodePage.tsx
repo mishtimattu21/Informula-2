@@ -144,7 +144,7 @@ const DecodePage: React.FC = () => {
       <div className="container mx-auto px-4 py-1">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-12">
-            <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-emerald-600 to-teal-500 bg-clip-text text-transparent">
+            <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-emerald-600 to-teal-500 bg-clip-text text-transparent relative z-10 pb-2 leading-tight">
               Decode Your Ingredients
             </h1>
             
@@ -154,20 +154,19 @@ const DecodePage: React.FC = () => {
           <div className="flex justify-center mb-4">
             <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-2 flex space-x-2">
               {[
-                { id: 'scan', label: 'Scan/Camera', icon: '📱' },
-                { id: 'upload', label: 'Upload Image', icon: '📤' },
-                { id: 'type', label: 'Type Ingredients', icon: '⌨️' }
+                { id: 'scan', label: 'Scan/Camera' },
+                { id: 'upload', label: 'Upload Image' },
+                { id: 'type', label: 'Type Ingredients' }
               ].map((tab) => (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id as any)}
-                  className={`px-6 py-3 rounded-xl transition-all duration-300 flex items-center space-x-2 ${
+                  className={`px-6 py-3 rounded-xl transition-all duration-500 ease-in-out flex items-center justify-center ${
                     activeTab === tab.id
-                      ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg'
-                      : 'text-foreground/70 hover:text-foreground hover:bg-white/50 dark:hover:bg-gray-700'
+                      ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg transform scale-105'
+                      : 'text-foreground/70 hover:text-foreground hover:bg-white/50 dark:hover:bg-gray-700 hover:scale-102'
                   }`}
                 >
-                  <span>{tab.icon}</span>
                   <span className="font-medium">{tab.label}</span>
                 </button>
               ))}
@@ -407,7 +406,6 @@ Example: Water, Sodium Lauryl Sulfate, Cocamidopropyl Betaine, Sodium Chloride, 
               onClick={handleAnalyze}
               className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white px-12 py-6 text-lg rounded-2xl shadow-lg hover:shadow-emerald-500/25 transition-all duration-300 transform hover:scale-105"
             >
-              <span className="mr-2">🔬</span>
               Analyze Ingredients
             </Button>
           </div>

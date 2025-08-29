@@ -6,8 +6,8 @@ const AboutSection: React.FC = () => {
     <section id="about" className="py-20 bg-background">
       <div className="container mx-auto px-4">
         <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-4xl md:text-5xl font-bold mb-8 bg-gradient-to-r from-emerald-600 to-teal-500 bg-clip-text text-transparent">
-            What is Informula?
+          <h2 className="text-4xl md:text-5xl font-bold mb-8">
+            What is <span className="bg-gradient-to-r from-emerald-600 to-teal-500 bg-clip-text text-transparent">Informula</span>?
           </h2>
           
           <p className="text-lg md:text-xl text-foreground/80 mb-8 leading-relaxed">
