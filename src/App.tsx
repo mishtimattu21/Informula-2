@@ -10,6 +10,7 @@ import AuthPage from "./pages/AuthPage";
 import QuestionsPage from "./pages/QuestionsPage";
 import DecodePage from "./pages/DecodePage";
 import ResultsPage from "./pages/ResultsPage";
+import MyDataPage from "./pages/MyDataPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -27,6 +28,7 @@ const App = () => (
             <Route path="/questions" element={<QuestionsPage />} />
             <Route path="/decode" element={<DecodePage />} />
             <Route path="/results" element={<ResultsPage />} />
+            <Route path="/my-data" element={<MyDataPage />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
