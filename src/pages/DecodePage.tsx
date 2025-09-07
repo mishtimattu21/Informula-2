@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Upload, Camera } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { analyzeImageFile, analyzeImage, analyzeText } from '@/services/api';
+import { useUser } from '@clerk/clerk-react';
 import { useTheme } from '../components/ThemeProvider';
 import { toast } from '@/hooks/use-toast';
 import CameraInterface from '../components/CameraInterface';
@@ -23,6 +24,7 @@ const DecodePage: React.FC = () => {
   const [productQuery, setProductQuery] = useState('');
   const navigate = useNavigate();
   const { toggleTheme, theme } = useTheme();
+  const { isSignedIn, user } = useUser();
 
   const handleFileUpload = (file: File) => {
     if (file && file.type.startsWith('image/')) {
@@ -102,8 +104,8 @@ const DecodePage: React.FC = () => {
     });
 
     try {
-      // Placeholder for user id; integrate with auth if available
-      const userId = undefined;
+      // Send Clerk user id so backend can pull profile from Supabase for personalized analysis
+      const userId = isSignedIn && user ? user.id : undefined;
       let result: any;
       if (activeTab === 'upload' && uploadedFile) {
         result = await analyzeImageFile(uploadedFile, userId, productName, productQuery);

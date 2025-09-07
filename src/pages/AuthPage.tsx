@@ -13,9 +13,9 @@ const AuthPage: React.FC = () => {
         </div>
         <div className="w-full flex flex-col items-center">
           {isLogin ? (
-            <SignIn routing="hash" afterSignInUrl="/questions" />
+            <SignIn routing="hash" afterSignInUrl="/post-auth" />
           ) : (
-            <SignUp routing="hash" afterSignUpUrl="/questions" />
+            <SignUp routing="hash" afterSignUpUrl="/post-auth" />
           )}
           <button
             onClick={() => setIsLogin(!isLogin)}
