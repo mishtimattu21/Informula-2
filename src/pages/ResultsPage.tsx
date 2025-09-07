@@ -69,11 +69,64 @@ const ResultsPage: React.FC = () => {
   const totalCount = analysisData.totalIngredients || (analysisData.insights ? analysisData.insights.length : 0);
   const flaggedCount = (numHigh + numMedium + numLow);
 
-  // Weighted deduction model (three categories)
-  // High = 30, Medium = 15, Low = 5 points deducted from 100
-  const rawScore = 100 - (numHigh * 30 + numMedium * 15 + numLow * 5);
-  const computedScore = Math.max(1, Math.min(100, isNaN(rawScore) ? 0 : rawScore));
-  const computedRiskLevel = computedScore >= 80 ? 'Low' : computedScore >= 50 ? 'Medium' : 'High';
+  // Improved risk calculation that considers both severity and proportion
+  const calculateRiskScore = () => {
+    if (totalCount === 0) return { score: 0, riskLevel: 'Unknown' };
+    
+    // Base score starts at 100
+    let score = 100;
+    
+    // Calculate severity penalty based on ingredient risk levels
+    const severityPenalty = (numHigh * 25) + (numMedium * 12) + (numLow * 4);
+    
+    // Calculate proportion penalty - higher penalty if more ingredients are flagged
+    const flaggedProportion = flaggedCount / totalCount;
+    const proportionPenalty = flaggedProportion * 20; // Up to 20 points for 100% flagged
+    
+    // Apply penalties
+    score -= severityPenalty;
+    score -= proportionPenalty;
+    
+    // Additional penalty for high-risk ingredients (exponential impact)
+    if (numHigh > 0) {
+      score -= numHigh * 5; // Extra penalty for each high-risk ingredient
+    }
+    
+    // Bonus for safe ingredients (up to 10 points)
+    const safeProportion = numSafe / totalCount;
+    score += safeProportion * 10;
+    
+    // Ensure score is within bounds
+    score = Math.max(0, Math.min(100, score));
+    
+    // Determine risk level with more nuanced thresholds
+    let riskLevel: string;
+    if (score >= 85) {
+      riskLevel = 'Low';
+    } else if (score >= 65) {
+      riskLevel = 'Medium';
+    } else if (score >= 35) {
+      riskLevel = 'High';
+    } else {
+      riskLevel = 'Very High';
+    }
+    
+    return { score: Math.round(score), riskLevel };
+  };
+
+  const { score: computedScore, riskLevel: computedRiskLevel } = calculateRiskScore();
+
+  // Debug logging for risk calculation (remove in production)
+  console.log('Risk Calculation Debug:', {
+    totalCount,
+    flaggedCount,
+    numHigh,
+    numMedium,
+    numLow,
+    numSafe,
+    computedScore,
+    computedRiskLevel
+  });
 
   useEffect(() => {
     const ing = ingredientRef.current;
@@ -169,20 +222,39 @@ const ResultsPage: React.FC = () => {
                   <CardHeader>
                     <CardTitle className="flex items-center justify-between">
                       Overall Safety Score
-                      <Badge variant={computedRiskLevel === 'Low' ? 'default' : 'secondary'}>
+                      <Badge 
+                        variant={
+                          computedRiskLevel === 'Low' ? 'default' : 
+                          computedRiskLevel === 'Medium' ? 'secondary' :
+                          computedRiskLevel === 'High' ? 'destructive' : 'destructive'
+                        }
+                        className={
+                          computedRiskLevel === 'Very High' ? 'bg-red-600 hover:bg-red-700' : ''
+                        }
+                      >
                         {computedRiskLevel} Risk
                       </Badge>
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="flex items-center space-x-4">
-                      <div className="text-4xl font-bold text-emerald-600">
+                      <div className={`text-4xl font-bold ${
+                        computedRiskLevel === 'Low' ? 'text-emerald-600' :
+                        computedRiskLevel === 'Medium' ? 'text-yellow-600' :
+                        computedRiskLevel === 'High' ? 'text-orange-600' :
+                        'text-red-600'
+                      }`}>
                         {isNaN(computedScore) ? '-' : computedScore}
                       </div>
                       <div className="flex-1">
                         <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
                           <div 
-                            className="bg-gradient-to-r from-emerald-500 to-teal-500 h-3 rounded-full transition-all duration-1000"
+                            className={`h-3 rounded-full transition-all duration-1000 ${
+                              computedRiskLevel === 'Low' ? 'bg-gradient-to-r from-emerald-500 to-teal-500' :
+                              computedRiskLevel === 'Medium' ? 'bg-gradient-to-r from-yellow-500 to-orange-500' :
+                              computedRiskLevel === 'High' ? 'bg-gradient-to-r from-orange-500 to-red-500' :
+                              'bg-gradient-to-r from-red-500 to-red-700'
+                            }`}
                             style={{ width: `${Math.max(0, Math.min(100, computedScore || 0))}%` }}
                           />
                         </div>
