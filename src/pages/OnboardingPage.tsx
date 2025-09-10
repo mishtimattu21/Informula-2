@@ -62,13 +62,13 @@ const OnboardingPage: React.FC = () => {
         const isComplete = data.age !== null && data.gender !== '' && data.diet_type !== '';
         
         if (isComplete) {
-          // Profile is complete, redirect to questions
+          // Profile is complete, redirect to decode
           toast({ 
             title: 'Profile Found', 
             description: 'You already have a complete profile!', 
             variant: 'default' 
           });
-          navigate('/questions');
+          navigate('/decode');
           return;
         } else {
           // Profile exists but is incomplete, load it for editing
@@ -220,9 +220,9 @@ const OnboardingPage: React.FC = () => {
                 <Button 
                   size="sm" 
                   variant="outline" 
-                  onClick={() => navigate('/questions')}
+                  onClick={() => navigate('/decode')}
                 >
-                  Skip to Questions
+                  Skip to Decode
                 </Button>
                 <Button 
                   size="sm" 
@@ -298,40 +298,106 @@ const OnboardingPage: React.FC = () => {
             <div className="rounded-2xl border-2 border-emerald-200 dark:border-emerald-800 bg-background p-8 space-y-8">
               <div>
                 <h2 className="text-2xl font-semibold mb-6 text-center">Allergies</h2>
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {profile?.allergies.map((m, i) => (
-                    <span key={i} className="px-3 py-1 rounded-full bg-rose-100 text-rose-700 text-sm flex items-center gap-2">{m}
-                      <button className="hover:text-rose-900" onClick={() => setProfile(p => p ? { ...p, allergies: p.allergies.filter((_, idx) => idx !== i) } : p)}>×</button>
-                    </span>
-                  ))}
+                <p className="text-sm text-muted-foreground mb-4 text-center">Select common allergies or add your own</p>
+                
+                {/* Common Indian Allergies */}
+                <div className="mb-6">
+                  <h3 className="text-sm font-medium text-foreground/70 mb-3">Common Allergies in India:</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {['Peanuts', 'Cashews', 'Almonds', 'Milk', 'Eggs', 'Fish', 'Shellfish', 'Sesame'].map((allergy) => (
+                      <button
+                        key={allergy}
+                        onClick={() => {
+                          if (profile && !profile.allergies.includes(allergy)) {
+                            setProfile({ ...profile, allergies: [...profile.allergies, allergy] });
+                          }
+                        }}
+                        className={`px-3 py-2 rounded-full text-sm border transition-colors ${
+                          profile?.allergies.includes(allergy)
+                            ? 'bg-rose-100 text-rose-700 border-rose-300'
+                            : 'bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200'
+                        }`}
+                        disabled={profile?.allergies.includes(allergy)}
+                      >
+                        {allergy}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-                <div className="flex gap-2 mt-3">
-                  <Input placeholder="Add allergy and press Enter" value={newAllergy} onChange={(e) => setNewAllergy(e.target.value)} onKeyDown={(e) => {
-                    if (e.key === 'Enter' && newAllergy.trim() && profile) {
+
+                {/* Selected Allergies */}
+                <div className="mb-4">
+                  <h3 className="text-sm font-medium text-foreground/70 mb-3">Your Allergies:</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {profile?.allergies.map((m, i) => (
+                      <span key={i} className="px-3 py-1 rounded-full bg-rose-100 text-rose-700 text-sm flex items-center gap-2">{m}
+                        <button className="hover:text-rose-900" onClick={() => setProfile(p => p ? { ...p, allergies: p.allergies.filter((_, idx) => idx !== i) } : p)}>×</button>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Custom Allergy Input */}
+                <div className="flex gap-2">
+                  <Input placeholder="Add custom allergy and press Enter" value={newAllergy} onChange={(e) => setNewAllergy(e.target.value)} onKeyDown={(e) => {
+                    if (e.key === 'Enter' && newAllergy.trim() && profile && !profile.allergies.includes(newAllergy.trim())) {
                       setProfile({ ...profile, allergies: [...profile.allergies, newAllergy.trim()] });
                       setNewAllergy('');
                     }
                   }} />
-                  <Button variant="outline" onClick={() => { if (newAllergy.trim() && profile) { setProfile({ ...profile, allergies: [...profile.allergies, newAllergy.trim()] }); setNewAllergy(''); } }}>Add</Button>
+                  <Button variant="outline" onClick={() => { if (newAllergy.trim() && profile && !profile.allergies.includes(newAllergy.trim())) { setProfile({ ...profile, allergies: [...profile.allergies, newAllergy.trim()] }); setNewAllergy(''); } }}>Add</Button>
                 </div>
               </div>
               <div>
                 <h2 className="text-2xl font-semibold mb-6 text-center">Items to Avoid</h2>
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {profile?.avoid_list.map((m, i) => (
-                    <span key={i} className="px-3 py-1 rounded-full bg-amber-100 text-amber-700 text-sm flex items-center gap-2">{m}
-                      <button className="hover:text-amber-900" onClick={() => setProfile(p => p ? { ...p, avoid_list: p.avoid_list.filter((_, idx) => idx !== i) } : p)}>×</button>
-                    </span>
-                  ))}
+                <p className="text-sm text-muted-foreground mb-4 text-center">Select common ingredients to avoid or add your own</p>
+                
+                {/* Common Items to Avoid */}
+                <div className="mb-6">
+                  <h3 className="text-sm font-medium text-foreground/70 mb-3">Common Items to Avoid:</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {['Artificial Colors', 'Preservatives', 'High Sodium', 'Artificial Sweeteners', 'Ajinomoto'].map((item) => (
+                      <button
+                        key={item}
+                        onClick={() => {
+                          if (profile && !profile.avoid_list.includes(item)) {
+                            setProfile({ ...profile, avoid_list: [...profile.avoid_list, item] });
+                          }
+                        }}
+                        className={`px-3 py-2 rounded-full text-sm border transition-colors ${
+                          profile?.avoid_list.includes(item)
+                            ? 'bg-amber-100 text-amber-700 border-amber-300'
+                            : 'bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200'
+                        }`}
+                        disabled={profile?.avoid_list.includes(item)}
+                      >
+                        {item}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-                <div className="flex gap-2 mt-3">
-                  <Input placeholder="Add item and press Enter" value={newAvoid} onChange={(e) => setNewAvoid(e.target.value)} onKeyDown={(e) => {
-                    if (e.key === 'Enter' && newAvoid.trim() && profile) {
+
+                {/* Selected Items to Avoid */}
+                <div className="mb-4">
+                  <h3 className="text-sm font-medium text-foreground/70 mb-3">Your Avoid List:</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {profile?.avoid_list.map((m, i) => (
+                      <span key={i} className="px-3 py-1 rounded-full bg-amber-100 text-amber-700 text-sm flex items-center gap-2">{m}
+                        <button className="hover:text-amber-900" onClick={() => setProfile(p => p ? { ...p, avoid_list: p.avoid_list.filter((_, idx) => idx !== i) } : p)}>×</button>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Custom Input */}
+                <div className="flex gap-2">
+                  <Input placeholder="Add custom item and press Enter" value={newAvoid} onChange={(e) => setNewAvoid(e.target.value)} onKeyDown={(e) => {
+                    if (e.key === 'Enter' && newAvoid.trim() && profile && !profile.avoid_list.includes(newAvoid.trim())) {
                       setProfile({ ...profile, avoid_list: [...profile.avoid_list, newAvoid.trim()] });
                       setNewAvoid('');
                     }
                   }} />
-                  <Button variant="outline" onClick={() => { if (newAvoid.trim() && profile) { setProfile({ ...profile, avoid_list: [...profile.avoid_list, newAvoid.trim()] }); setNewAvoid(''); } }}>Add</Button>
+                  <Button variant="outline" onClick={() => { if (newAvoid.trim() && profile && !profile.avoid_list.includes(newAvoid.trim())) { setProfile({ ...profile, avoid_list: [...profile.avoid_list, newAvoid.trim()] }); setNewAvoid(''); } }}>Add</Button>
                 </div>
               </div>
             </div>
@@ -410,7 +476,7 @@ const OnboardingPage: React.FC = () => {
         <div className="text-center mt-6">
           <Button 
             variant="ghost" 
-            onClick={() => navigate('/questions')}
+            onClick={() => navigate('/decode')}
             className="text-muted-foreground hover:text-foreground"
           >
             Skip for now

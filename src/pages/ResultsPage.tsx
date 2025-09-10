@@ -305,7 +305,7 @@ const ResultsPage: React.FC = () => {
                         </div>
                         <div className="flex-1">
                           <h4 className="font-semibold text-base">{insight.ingredient}</h4>
-                          <p className="text-sm text-foreground/70 mt-1">{insight.description}</p>
+                          <p className="text-sm text-foreground/70 mt-1" dangerouslySetInnerHTML={{ __html: insight.description }}></p>
                           <p className="text-xs text-foreground/50 mt-2">Source: {insight.source}</p>
                         </div>
                       </div>

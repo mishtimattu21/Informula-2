@@ -83,10 +83,10 @@ const DebugPage: React.FC = () => {
             Go to Onboarding
           </button>
           <button 
-            onClick={() => window.location.href = '/questions'}
+            onClick={() => window.location.href = '/decode'}
             className="bg-purple-500 text-white px-4 py-2 rounded"
           >
-            Go to Questions
+            Go to Decode
           </button>
         </div>
       </div>

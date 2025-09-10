@@ -10,7 +10,6 @@ import AuthPage from "./pages/AuthPage";
 import OnboardingPage from "./pages/OnboardingPage";
 import PostAuthGate from "./pages/PostAuthGate";
 import FirstLoginGuard from "./pages/FirstLoginGuard";
-import QuestionsPage from "./pages/QuestionsPage";
 import DecodePage from "./pages/DecodePage";
 import ResultsPage from "./pages/ResultsPage";
 import MyDataPage from "./pages/MyDataPage";
@@ -33,7 +32,6 @@ const App = () => (
             <Route path="/auth" element={<AuthPage />} />
             <Route path="/post-auth" element={<PostAuthGate />} />
             <Route path="/onboarding" element={<OnboardingPage />} />
-            <Route path="/questions" element={<QuestionsPage />} />
             <Route path="/decode" element={<DecodePage />} />
             <Route path="/results" element={<ResultsPage />} />
             <Route path="/my-data" element={<MyDataPage />} />

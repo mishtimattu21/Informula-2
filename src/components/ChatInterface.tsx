@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Send, MessageSquare } from 'lucide-react';
 import { chatAsk } from '@/services/api';
+import { useUser } from '@clerk/clerk-react';
 
 interface Message {
   id: string;
@@ -24,6 +25,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialAnalysis, heightPx
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const { isSignedIn, user } = useUser();
 
   useEffect(() => {
     if (initialAnalysis) {
@@ -58,7 +60,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialAnalysis, heightPx
 
     try {
       const history = [...messages, userMessage].map(m => ({ role: (m.sender === 'user' ? 'user' : 'ai') as 'user' | 'ai', content: m.content }));
-      const resp = await chatAsk(inputValue, history, initialAnalysis);
+      const userId = isSignedIn && user ? user.id : undefined;
+      const resp = await chatAsk(inputValue, history, initialAnalysis, userId);
       const aiResponse: Message = {
         id: (Date.now() + 1).toString(),
         content: resp.answer,

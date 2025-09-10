@@ -47,7 +47,7 @@ const PostAuthGate: React.FC = () => {
       }
 
       const isComplete = data.age !== null && data.gender && data.diet_type;
-      navigate(isComplete ? '/questions' : '/onboarding', { replace: true });
+      navigate(isComplete ? '/decode' : '/onboarding', { replace: true });
     };
     go();
   }, [isSignedIn, user, navigate]);

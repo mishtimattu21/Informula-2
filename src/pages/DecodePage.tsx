@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Upload, Camera } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { analyzeImageFile, analyzeImage, analyzeText } from '@/services/api';
@@ -21,10 +22,18 @@ const DecodePage: React.FC = () => {
   const [showImageModal, setShowImageModal] = useState(false);
   const [modalImage, setModalImage] = useState<string | null>(null);
   const [productName, setProductName] = useState('');
-  const [productQuery, setProductQuery] = useState('');
+  const [productType, setProductType] = useState('');
+  const [customProductType, setCustomProductType] = useState('');
   const navigate = useNavigate();
   const { toggleTheme, theme } = useTheme();
   const { isSignedIn, user } = useUser();
+
+  const handleProductTypeChange = (value: string) => {
+    setProductType(value);
+    if (value !== 'other') {
+      setCustomProductType('');
+    }
+  };
 
   const handleFileUpload = (file: File) => {
     if (file && file.type.startsWith('image/')) {
@@ -107,12 +116,14 @@ const DecodePage: React.FC = () => {
       // Send Clerk user id so backend can pull profile from Supabase for personalized analysis
       const userId = isSignedIn && user ? user.id : undefined;
       let result: any;
+      const finalProductType = productType === 'other' && customProductType ? customProductType : productType;
+      
       if (activeTab === 'upload' && uploadedFile) {
-        result = await analyzeImageFile(uploadedFile, userId, productName, productQuery);
+        result = await analyzeImageFile(uploadedFile, userId, productName, finalProductType);
       } else if (activeTab === 'scan' && capturedImage) {
-        result = await analyzeImage(capturedImage, userId, productName, productQuery);
+        result = await analyzeImage(capturedImage, userId, productName, finalProductType);
       } else if (activeTab === 'type') {
-        result = await analyzeText(ingredients, userId, productName, productQuery);
+        result = await analyzeText(ingredients, userId, productName, finalProductType);
       }
 
       if (!result) throw new Error('No result');
@@ -238,13 +249,34 @@ const DecodePage: React.FC = () => {
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium mb-2">Product Query (Optional)</label>
-                        <Input
-                          placeholder="e.g., Is this sunscreen safe for sensitive skin?"
-                          value={productQuery}
-                          onChange={(e) => setProductQuery(e.target.value)}
-                          className="rounded-xl border-2 border-gray-200 dark:border-gray-700 focus:border-emerald-500"
-                        />
+                        <label className="block text-sm font-medium mb-2">Product Type (Optional)</label>
+                        <Select value={productType} onValueChange={handleProductTypeChange}>
+                          <SelectTrigger className="rounded-xl border-2 border-gray-200 dark:border-gray-700 focus:border-emerald-500">
+                            <SelectValue placeholder="Select product type" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="shampoo">Shampoo</SelectItem>
+                            <SelectItem value="conditioner">Conditioner</SelectItem>
+                            <SelectItem value="soap">Soap</SelectItem>
+                            <SelectItem value="lotion">Lotion</SelectItem>
+                            <SelectItem value="sunscreen">Sunscreen</SelectItem>
+                            <SelectItem value="makeup">Makeup</SelectItem>
+                            <SelectItem value="skincare">Skincare</SelectItem>
+                            <SelectItem value="food">Food</SelectItem>
+                            <SelectItem value="beverage">Beverage</SelectItem>
+                            <SelectItem value="supplement">Supplement</SelectItem>
+                            <SelectItem value="cleaning">Cleaning Product</SelectItem>
+                            <SelectItem value="other">Other</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        {productType === 'other' && (
+                          <Input
+                            placeholder="Specify product type..."
+                            value={customProductType}
+                            onChange={(e) => setCustomProductType(e.target.value)}
+                            className="mt-2 rounded-xl border-2 border-gray-200 dark:border-gray-700 focus:border-emerald-500"
+                          />
+                        )}
                       </div>
                     </div>
                   </div>
@@ -339,13 +371,34 @@ const DecodePage: React.FC = () => {
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium mb-2">Product Query (Optional)</label>
-                        <Input
-                          placeholder="e.g., Is this sunscreen safe for sensitive skin?"
-                          value={productQuery}
-                          onChange={(e) => setProductQuery(e.target.value)}
-                          className="rounded-xl border-2 border-gray-200 dark:border-gray-700 focus:border-emerald-500"
-                        />
+                        <label className="block text-sm font-medium mb-2">Product Type (Optional)</label>
+                        <Select value={productType} onValueChange={handleProductTypeChange}>
+                          <SelectTrigger className="rounded-xl border-2 border-gray-200 dark:border-gray-700 focus:border-emerald-500">
+                            <SelectValue placeholder="Select product type" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="shampoo">Shampoo</SelectItem>
+                            <SelectItem value="conditioner">Conditioner</SelectItem>
+                            <SelectItem value="soap">Soap</SelectItem>
+                            <SelectItem value="lotion">Lotion</SelectItem>
+                            <SelectItem value="sunscreen">Sunscreen</SelectItem>
+                            <SelectItem value="makeup">Makeup</SelectItem>
+                            <SelectItem value="skincare">Skincare</SelectItem>
+                            <SelectItem value="food">Food</SelectItem>
+                            <SelectItem value="beverage">Beverage</SelectItem>
+                            <SelectItem value="supplement">Supplement</SelectItem>
+                            <SelectItem value="cleaning">Cleaning Product</SelectItem>
+                            <SelectItem value="other">Other</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        {productType === 'other' && (
+                          <Input
+                            placeholder="Specify product type..."
+                            value={customProductType}
+                            onChange={(e) => setCustomProductType(e.target.value)}
+                            className="mt-2 rounded-xl border-2 border-gray-200 dark:border-gray-700 focus:border-emerald-500"
+                          />
+                        )}
                       </div>
                     </div>
                   </div>
@@ -365,14 +418,14 @@ Example: Water, Sodium Lauryl Sulfate, Cocamidopropyl Betaine, Sodium Chloride, 
                     />
                   </div>
                   
-                  <div className="bg-blue-50 dark:bg-blue-950/30 rounded-xl p-4">
+                  {/* <div className="bg-blue-50 dark:bg-blue-950/30 rounded-xl p-4">
                     <h4 className="font-medium mb-2">💡 Tips for better results:</h4>
                     <ul className="text-sm text-foreground/70 space-y-1">
                       <li>• Separate ingredients with commas</li>
                       <li>• Include the complete ingredient list</li>
                       <li>• Check spelling for accurate analysis</li>
                     </ul>
-                  </div>
+                  </div> */}
 
                   {/* Product Information Fields */}
                   <div className="pt-6 border-t border-gray-200 dark:border-gray-700">
@@ -387,13 +440,34 @@ Example: Water, Sodium Lauryl Sulfate, Cocamidopropyl Betaine, Sodium Chloride, 
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium mb-2">Product Query (Optional)</label>
-                        <Input
-                          placeholder="e.g., Is this sunscreen safe for sensitive skin?"
-                          value={productQuery}
-                          onChange={(e) => setProductQuery(e.target.value)}
-                          className="rounded-xl border-2 border-gray-200 dark:border-gray-700 focus:border-emerald-500"
-                        />
+                        <label className="block text-sm font-medium mb-2">Product Type (Optional)</label>
+                        <Select value={productType} onValueChange={handleProductTypeChange}>
+                          <SelectTrigger className="rounded-xl border-2 border-gray-200 dark:border-gray-700 focus:border-emerald-500">
+                            <SelectValue placeholder="Select product type" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="shampoo">Shampoo</SelectItem>
+                            <SelectItem value="conditioner">Conditioner</SelectItem>
+                            <SelectItem value="soap">Soap</SelectItem>
+                            <SelectItem value="lotion">Lotion</SelectItem>
+                            <SelectItem value="sunscreen">Sunscreen</SelectItem>
+                            <SelectItem value="makeup">Makeup</SelectItem>
+                            <SelectItem value="skincare">Skincare</SelectItem>
+                            <SelectItem value="food">Food</SelectItem>
+                            <SelectItem value="beverage">Beverage</SelectItem>
+                            <SelectItem value="supplement">Supplement</SelectItem>
+                            <SelectItem value="cleaning">Cleaning Product</SelectItem>
+                            <SelectItem value="other">Other</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        {productType === 'other' && (
+                          <Input
+                            placeholder="Specify product type..."
+                            value={customProductType}
+                            onChange={(e) => setCustomProductType(e.target.value)}
+                            className="mt-2 rounded-xl border-2 border-gray-200 dark:border-gray-700 focus:border-emerald-500"
+                          />
+                        )}
                       </div>
                     </div>
                   </div>

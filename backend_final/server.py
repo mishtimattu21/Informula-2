@@ -46,15 +46,16 @@ def _extract_json(text: str):
     return None
 
 
-def run_pipeline(ingredients_text: str, user_id: Optional[str]):
+def run_pipeline(ingredients_text: str, user_id: Optional[str], product_type: str = '', product_name: str = ''):
     user_profile = get_user_profile(user_id) if user_id else {
         'age': 'unknown',
         'gender': 'unknown',
+        'diet_type': 'unknown',
         'past_medication': [],
         'allergies': [],
         'avoid_list': []
     }
-    prompt = format_prompt(ingredients_text, user_profile)
+    prompt = format_prompt(ingredients_text, user_profile, product_type, product_name)
     result = get_ingredient_report(prompt)
     parsed = _extract_json(result)
     if parsed is not None:
@@ -79,6 +80,7 @@ async def chat_reply(request: Request):
     if user_profile:
         profile_text = (
             f"User Profile -> age: {user_profile.get('age')}, gender: {user_profile.get('gender')}, "
+            f"diet_type: {user_profile.get('diet_type', 'unknown')}, "
             f"allergies: {', '.join(user_profile.get('allergies', []))}, "
             f"avoid_list: {', '.join(user_profile.get('avoid_list', []))}"
         )
@@ -101,7 +103,7 @@ async def chat_reply(request: Request):
 
 
 @app.post("/api/analyze-image")
-async def analyze_image(request: Request, file: Optional[UploadFile] = File(None), image: Optional[str] = Form(None), userId: Optional[str] = Form(None), productName: Optional[str] = Form(None), productQuery: Optional[str] = Form(None)):
+async def analyze_image(request: Request, file: Optional[UploadFile] = File(None), image: Optional[str] = Form(None), userId: Optional[str] = Form(None), productName: Optional[str] = Form(None), productType: Optional[str] = Form(None)):
     # Accept either multipart form-data (file) OR JSON body { image: base64, userId, ... }
     image_bytes: Optional[bytes] = None
     uid: Optional[str] = userId
@@ -118,6 +120,8 @@ async def analyze_image(request: Request, file: Optional[UploadFile] = File(None
             data = await request.json()
             img = data.get('image')
             uid = data.get('userId') or uid
+            productName = data.get('productName') or productName
+            productType = data.get('productType') or productType
             if img:
                 header, b64 = (img.split(',', 1) + [img])[:2]
                 image_bytes = base64.b64decode(b64)
@@ -128,7 +132,9 @@ async def analyze_image(request: Request, file: Optional[UploadFile] = File(None
         return { 'error': 'No image provided' }
 
     ingredients_text = extract_text_from_bytes(image_bytes)
-    json_result = run_pipeline(ingredients_text, uid)
+    product_type = productType or ''
+    product_name = productName or ''
+    json_result = run_pipeline(ingredients_text, uid, product_type, product_name)
     return json_result
 
 
@@ -137,7 +143,9 @@ async def analyze_text(request: Request):
     data = await request.json()
     ingredients = data.get('ingredients', '')
     user_id = data.get('userId')
-    json_result = run_pipeline(ingredients, user_id)
+    product_type = data.get('productType', '')
+    product_name = data.get('productName', '')
+    json_result = run_pipeline(ingredients, user_id, product_type, product_name)
     return json_result
 
 
