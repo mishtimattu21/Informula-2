@@ -41,7 +41,7 @@ GUIDANCE FOR CONTENT
 - Use the user profile to contextualize risks (e.g., allergies, medications, sensitivities) in each ingredient's description.
 - When uncertain about concentration, assume typical cosmetic/food use levels and state the basis briefly.
 - Keep descriptions specific (what it is, why rated, user-relevant note).
-- For ingredients banned in prominent countries (US, EU, Canada, UK, Australia, Japan), include this information in the description and mark with <span style="color: red;">BANNED in [Country/Region]</span>.
+- For ingredients banned in prominent countries (US, EU, Canada, UK, Australia, Japan), include this information in the description and mark with <span style="color: red;">BANNED in [specific country names]</span>. Only list the actual countries where it's banned, not "other countries" or similar vague terms.
 - Provide exactly 3 recommendations, each 6–14 words, specific and actionable.
 
 Return ONLY the JSON object, nothing else.
