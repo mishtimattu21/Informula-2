@@ -169,10 +169,10 @@ const DecodePage: React.FC = () => {
           <div className="flex justify-center mb-4">
 			  <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-1 md:p-2 flex flex-row flex-wrap items-center justify-center gap-2 w-full max-w-xl mx-auto">
 				{[
-				  { id: 'scan', mobile: 'Scan', desktop: 'Scan/Camera' },
-				  { id: 'upload', mobile: 'Upload', desktop: 'Upload Image' },
-				  { id: 'type', mobile: 'Type', desktop: 'Type Ingredients' }
-              ].map((tab) => (
+				  { id: 'scan', mobile: 'Scan', desktop: 'Scan/Camera', icon: '/scan.png' },
+				  { id: 'upload', mobile: 'Upload', desktop: 'Upload Image', icon: '/upload.png' },
+				  { id: 'type', mobile: 'Type', desktop: 'Type Ingredients', icon: '/type.png' }
+				].map((tab) => (
                 <button
                   key={tab.id}
 					  onClick={() => setActiveTab(tab.id as 'scan' | 'upload' | 'type')}
@@ -181,8 +181,9 @@ const DecodePage: React.FC = () => {
                       ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg transform scale-105'
 						: 'text-foreground/70 hover:text-foreground hover:bg-white/50 dark:hover:bg-gray-700'
                   }`}
-                >
-					<span className="text-sm md:text-base font-medium">
+				  >
+					<span className="text-sm md:text-base font-medium inline-flex items-center gap-2">
+						<img src={tab.icon} alt="" aria-hidden="true" className="h-4 w-4 md:h-5 md:w-5" />
 						<span className="md:hidden">{tab.mobile}</span>
 						<span className="hidden md:inline">{tab.desktop}</span>
 					</span>
