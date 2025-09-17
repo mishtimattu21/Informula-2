@@ -1,7 +1,7 @@
 # Core web framework
 fastapi
 uvicorn[standard]
-
+gunicorn
 # Env configuration
 python-dotenv
 
