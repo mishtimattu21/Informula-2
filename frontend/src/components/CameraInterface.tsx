@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Camera, X, RotateCcw, Zap } from 'lucide-react';
+import { Camera, X, RotateCcw, Zap, RefreshCw } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 interface CameraInterfaceProps {
@@ -13,6 +13,9 @@ interface CameraInterfaceProps {
 const CameraInterface: React.FC<CameraInterfaceProps> = ({ onCapture, onClose }) => {
   const [isStreaming, setIsStreaming] = useState(false);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  const [facingMode, setFacingMode] = useState<'environment' | 'user'>('environment');
+  const [zoom, setZoom] = useState(1); // preview zoom for crop
+  const [rotation, setRotation] = useState(0); // 0, 90, 180, 270
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -29,7 +32,7 @@ const CameraInterface: React.FC<CameraInterfaceProps> = ({ onCapture, onClose })
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ 
         video: { 
-          facingMode: 'environment',
+          facingMode,
           width: { ideal: 1280 },
           height: { ideal: 720 }
         } 
@@ -68,6 +71,8 @@ const CameraInterface: React.FC<CameraInterfaceProps> = ({ onCapture, onClose })
 
   const retakePhoto = () => {
     setCapturedImage(null);
+    setZoom(1);
+    setRotation(0);
   };
 
   const usePhoto = () => {
@@ -83,6 +88,59 @@ const CameraInterface: React.FC<CameraInterfaceProps> = ({ onCapture, onClose })
       streamRef.current = null;
     }
     setIsStreaming(false);
+    onClose();
+  };
+
+  const switchCamera = async () => {
+    // toggle between back and front
+    const next = facingMode === 'environment' ? 'user' : 'environment';
+    setFacingMode(next);
+    // stop then restart
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(t => t.stop());
+      streamRef.current = null;
+    }
+    setIsStreaming(false);
+    await startCamera();
+  };
+
+  const rotatePreview = () => {
+    setRotation((prev) => (prev + 90) % 360);
+  };
+
+  const cropAndUse = async () => {
+    if (!capturedImage || !canvasRef.current) return;
+    const img = new Image();
+    img.src = capturedImage;
+    await new Promise((res) => { img.onload = () => res(null); });
+
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    // Output size: keep 1280x720-like aspect
+    const outW = 1280;
+    const outH = 720;
+    canvas.width = outW;
+    canvas.height = outH;
+
+    ctx.save();
+    // apply rotation around center
+    ctx.translate(outW / 2, outH / 2);
+    ctx.rotate((rotation * Math.PI) / 180);
+    ctx.translate(-outW / 2, -outH / 2);
+
+    // compute source rect (center crop with zoom)
+    const srcW = img.width / zoom;
+    const srcH = img.height / zoom;
+    const srcX = (img.width - srcW) / 2;
+    const srcY = (img.height - srcH) / 2;
+
+    ctx.drawImage(img, srcX, srcY, srcW, srcH, 0, 0, outW, outH);
+    ctx.restore();
+
+    const result = canvas.toDataURL('image/jpeg', 0.9);
+    onCapture(result);
     onClose();
   };
 
@@ -126,16 +184,25 @@ const CameraInterface: React.FC<CameraInterfaceProps> = ({ onCapture, onClose })
                     <div className="absolute bottom-0 right-0 w-8 h-8 border-r-4 border-b-4 border-emerald-500"></div>
                   </div>
                 </div>
-                <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2">
+                <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex items-center gap-2">
                   <p className="text-white text-sm bg-black/50 px-3 py-1 rounded-full">
                     Align ingredient list within the frame
                   </p>
+                  <Button onClick={switchCamera} variant="secondary" size="sm" className="bg-white/20 text-white hover:bg-white/30">
+                    <RefreshCw className="mr-2" size={14} />
+                    Switch
+                  </Button>
                 </div>
               </>
             )}
 
             {capturedImage && (
-              <img src={capturedImage} alt="Captured" className="w-full h-full object-cover" />
+              <img
+                src={capturedImage}
+                alt="Captured"
+                className="w-full h-full object-contain"
+                style={{ transform: `scale(${zoom}) rotate(${rotation}deg)`, transition: 'transform 0.2s' }}
+              />
             )}
           </div>
 
@@ -156,9 +223,17 @@ const CameraInterface: React.FC<CameraInterfaceProps> = ({ onCapture, onClose })
                   <RotateCcw className="mr-2" size={16} />
                   Retake
                 </Button>
-                <Button onClick={usePhoto} className="bg-emerald-500 hover:bg-emerald-600 px-6 py-3">
+                <div className="flex items-center gap-3">
+                  <label className="text-sm">Zoom</label>
+                  <input type="range" min={1} max={2} step={0.05} value={zoom} onChange={(e)=>setZoom(parseFloat(e.target.value))} />
+                </div>
+                <Button onClick={rotatePreview} variant="secondary" className="px-6 py-3">
+                  <RotateCcw className="mr-2" size={16} />
+                  Rotate 90°
+                </Button>
+                <Button onClick={cropAndUse} className="bg-emerald-500 hover:bg-emerald-600 px-6 py-3">
                   <Camera className="mr-2" size={16} />
-                  Use Photo
+                  Apply Crop & Use
                 </Button>
               </>
             )}
