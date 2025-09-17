@@ -158,9 +158,10 @@ const DecodePage: React.FC = () => {
       const constraints: MediaStreamConstraints = {
         video: {
           facingMode: { exact: cameraFacing } as unknown as ConstrainDOMString,
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-          aspectRatio: { ideal: 16/9 }
+          width: { ideal: 1920, min: 1280 },
+          height: { ideal: 1080, min: 720 },
+          aspectRatio: { ideal: 16 / 9 },
+          frameRate: { ideal: 30, min: 24 }
         }
       };
       let stream = await navigator.mediaDevices.getUserMedia(constraints);
@@ -170,18 +171,22 @@ const DecodePage: React.FC = () => {
         video.srcObject = stream;
         await video.play();
       }
-      // Try to minimize/normalize zoom (~1x) if available
+      // Try to normalize zoom to 1x and enable better camera controls if supported
       try {
         const track = stream.getVideoTracks()[0];
         const capsUnknown: unknown = typeof (track as { getCapabilities?: () => unknown }).getCapabilities === 'function'
           ? (track as { getCapabilities: () => unknown }).getCapabilities()
           : undefined;
-        if (capsUnknown && typeof capsUnknown === 'object' && 'zoom' in (capsUnknown as Record<string, unknown>)) {
-          const zoomCaps = (capsUnknown as { zoom?: { min?: number } }).zoom;
-          const minZoom = (zoomCaps && typeof zoomCaps.min === 'number') ? Math.max(1, zoomCaps.min) : 1;
-          await (track as MediaStreamTrack).applyConstraints(
-            { advanced: [ { zoom: minZoom } ] } as unknown as MediaTrackConstraints
-          );
+        const advanced: any = {};
+        if (capsUnknown && typeof capsUnknown === 'object') {
+          const caps = capsUnknown as any;
+          if ('zoom' in caps) advanced.zoom = 1; // force 1x when possible
+          if ('focusMode' in caps) advanced.focusMode = 'continuous';
+          if ('exposureMode' in caps) advanced.exposureMode = 'continuous';
+          if ('whiteBalanceMode' in caps) advanced.whiteBalanceMode = 'continuous';
+        }
+        if (Object.keys(advanced).length) {
+          await (track as MediaStreamTrack).applyConstraints({ advanced: [advanced] } as unknown as MediaTrackConstraints);
         }
       } catch (e) {
         // Ignore zoom capability errors gracefully
@@ -221,10 +226,16 @@ const DecodePage: React.FC = () => {
               const capsUnknown2: unknown = typeof (track as { getCapabilities?: () => unknown }).getCapabilities === 'function'
                 ? (track as { getCapabilities: () => unknown }).getCapabilities()
                 : undefined;
-              if (capsUnknown2 && typeof capsUnknown2 === 'object' && 'zoom' in (capsUnknown2 as Record<string, unknown>)) {
-                await (track as MediaStreamTrack).applyConstraints(
-                  { advanced: [ { zoom: 1 } ] } as unknown as MediaTrackConstraints
-                );
+              const adv: any = {};
+              if (capsUnknown2 && typeof capsUnknown2 === 'object') {
+                const caps2 = capsUnknown2 as any;
+                if ('zoom' in caps2) adv.zoom = 1;
+                if ('focusMode' in caps2) adv.focusMode = 'continuous';
+                if ('exposureMode' in caps2) adv.exposureMode = 'continuous';
+                if ('whiteBalanceMode' in caps2) adv.whiteBalanceMode = 'continuous';
+              }
+              if (Object.keys(adv).length) {
+                await (track as MediaStreamTrack).applyConstraints({ advanced: [adv] } as unknown as MediaTrackConstraints);
               }
             } catch {}
           }
