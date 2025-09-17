@@ -1,10 +1,10 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Upload, Camera, RefreshCcw } from 'lucide-react';
+import { Upload, Camera } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { analyzeImageFile, analyzeImage, analyzeText } from '@/services/api';
 import type { AnalysisResponse } from '@/services/api';
@@ -20,9 +20,6 @@ const DecodePage: React.FC = () => {
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [showCamera, setShowCamera] = useState(false);
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-  const streamRef = useRef<MediaStream | null>(null);
-  const [cameraFacing, setCameraFacing] = useState<'user' | 'environment'>('environment');
   const [showImageModal, setShowImageModal] = useState(false);
   const [modalImage, setModalImage] = useState<string | null>(null);
   const [productName, setProductName] = useState('');
@@ -143,43 +140,6 @@ const DecodePage: React.FC = () => {
     }
   };
 
-  const stopCamera = useCallback(() => {
-    const stream = streamRef.current;
-    if (stream) {
-      stream.getTracks().forEach(track => track.stop());
-      streamRef.current = null;
-    }
-  }, []);
-
-  const startCamera = useCallback(() => {
-    navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: cameraFacing } } })
-      .then(stream => {
-        streamRef.current = stream;
-        const video = videoRef.current;
-        if (video) {
-          video.srcObject = stream;
-          video.play();
-        }
-      })
-      .catch(err => {
-        console.error('Camera access denied:', err);
-        toast({
-          title: "Camera access denied",
-          description: "Please allow camera access to capture images.",
-          variant: "destructive"
-        });
-      });
-  }, [cameraFacing]);
-
-  useEffect(() => {
-    if (!showCamera) return;
-    stopCamera();
-    startCamera();
-    return () => {
-      stopCamera();
-    };
-  }, [showCamera, startCamera, stopCamera]);
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-emerald-50/30 dark:to-emerald-950/30">
       {/* Header */}
@@ -223,6 +183,7 @@ const DecodePage: React.FC = () => {
                   }`}
 				  >
 					<span className="text-sm md:text-base font-medium inline-flex items-center gap-2">
+						<img src={tab.icon} alt="" aria-hidden="true" className="h-4 w-4 md:h-5 md:w-5" />
 						<span className="md:hidden">{tab.mobile}</span>
 						<span className="hidden md:inline">{tab.desktop}</span>
 					</span>
@@ -555,34 +516,50 @@ Example: Water, Sodium Lauryl Sulfate, Cocamidopropyl Betaine, Sodium Chloride, 
               {/* Camera Preview Area */}
               <div className="relative bg-gray-200 dark:bg-gray-700 rounded-xl h-64 flex items-center justify-center">
                 <video 
-                  ref={videoRef}
+                  ref={(video) => {
+                    if (video && showCamera) {
+                      navigator.mediaDevices.getUserMedia({ video: true })
+                        .then(stream => {
+                          video.srcObject = stream;
+                          video.play();
+                        })
+                        .catch(err => {
+                          console.error('Camera access denied:', err);
+                          toast({
+                            title: "Camera access denied",
+                            description: "Please allow camera access to capture images.",
+                            variant: "destructive"
+                          });
+                        });
+                    }
+                  }}
                   className="w-full h-full object-cover rounded-xl"
                   autoPlay
                   playsInline
                 />
-                <button
-                  onClick={() => setCameraFacing(prev => prev === 'user' ? 'environment' : 'user')}
-                  className="absolute top-2 right-2 bg-white/80 dark:bg-gray-900/60 hover:bg-white text-emerald-600 rounded-full p-2 shadow"
-                  aria-label="Flip camera"
-                >
-                  <RefreshCcw className="w-5 h-5" />
-                </button>
               </div>
 
               {/* Capture Button */}
               <div className="flex justify-center space-x-4">
                 <Button
                   onClick={() => {
-                    const video = videoRef.current as HTMLVideoElement | null;
-                    if (!video) return;
-                    const canvas = document.createElement('canvas');
-                    canvas.width = video.videoWidth;
-                    canvas.height = video.videoHeight;
-                    const ctx = canvas.getContext('2d');
-                    ctx?.drawImage(video, 0, 0);
-                    const imageData = canvas.toDataURL('image/jpeg');
-                    stopCamera();
-                    handleCameraCapture(imageData);
+                    const video = document.querySelector('video');
+                    if (video) {
+                      const canvas = document.createElement('canvas');
+                      canvas.width = video.videoWidth;
+                      canvas.height = video.videoHeight;
+                      const ctx = canvas.getContext('2d');
+                      ctx?.drawImage(video, 0, 0);
+                      const imageData = canvas.toDataURL('image/jpeg');
+                      
+                      // Stop camera stream
+                      const stream = video.srcObject as MediaStream;
+                      if (stream) {
+                        stream.getTracks().forEach(track => track.stop());
+                      }
+                      
+                      handleCameraCapture(imageData);
+                    }
                   }}
                   className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white px-8 py-3 rounded-xl"
                 >
@@ -591,7 +568,13 @@ Example: Water, Sodium Lauryl Sulfate, Cocamidopropyl Betaine, Sodium Chloride, 
                 </Button>
                 <Button
                   onClick={() => {
-                    stopCamera();
+                    const video = document.querySelector('video');
+                    if (video) {
+                      const stream = video.srcObject as MediaStream;
+                      if (stream) {
+                        stream.getTracks().forEach(track => track.stop());
+                      }
+                    }
                     setShowCamera(false);
                   }}
                   variant="outline"
