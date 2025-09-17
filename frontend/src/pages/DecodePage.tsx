@@ -23,6 +23,8 @@ const DecodePage: React.FC = () => {
   const [cameraFacing, setCameraFacing] = useState<'user' | 'environment'>('environment');
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const [focusPoint, setFocusPoint] = useState<{ x: number; y: number } | null>(null);
+  const isMobile = typeof navigator !== 'undefined' && /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
   const [showImageModal, setShowImageModal] = useState(false);
   const [modalImage, setModalImage] = useState<string | null>(null);
   const [productName, setProductName] = useState('');
@@ -177,16 +179,16 @@ const DecodePage: React.FC = () => {
         const capsUnknown: unknown = typeof (track as { getCapabilities?: () => unknown }).getCapabilities === 'function'
           ? (track as { getCapabilities: () => unknown }).getCapabilities()
           : undefined;
-        const advanced: any = {};
+        const advanced: Record<string, unknown> = {};
         if (capsUnknown && typeof capsUnknown === 'object') {
-          const caps = capsUnknown as any;
+          const caps = capsUnknown as Record<string, unknown>;
           if ('zoom' in caps) advanced.zoom = 1; // force 1x when possible
           if ('focusMode' in caps) advanced.focusMode = 'continuous';
           if ('exposureMode' in caps) advanced.exposureMode = 'continuous';
           if ('whiteBalanceMode' in caps) advanced.whiteBalanceMode = 'continuous';
         }
         if (Object.keys(advanced).length) {
-          await (track as MediaStreamTrack).applyConstraints({ advanced: [advanced] } as unknown as MediaTrackConstraints);
+          await (track as MediaStreamTrack).applyConstraints({ advanced: [advanced as MediaTrackConstraints] } as unknown as MediaTrackConstraints);
         }
       } catch (e) {
         // Ignore zoom capability errors gracefully
@@ -226,26 +228,65 @@ const DecodePage: React.FC = () => {
               const capsUnknown2: unknown = typeof (track as { getCapabilities?: () => unknown }).getCapabilities === 'function'
                 ? (track as { getCapabilities: () => unknown }).getCapabilities()
                 : undefined;
-              const adv: any = {};
+              const adv: Record<string, unknown> = {};
               if (capsUnknown2 && typeof capsUnknown2 === 'object') {
-                const caps2 = capsUnknown2 as any;
+                const caps2 = capsUnknown2 as Record<string, unknown>;
                 if ('zoom' in caps2) adv.zoom = 1;
                 if ('focusMode' in caps2) adv.focusMode = 'continuous';
                 if ('exposureMode' in caps2) adv.exposureMode = 'continuous';
                 if ('whiteBalanceMode' in caps2) adv.whiteBalanceMode = 'continuous';
               }
               if (Object.keys(adv).length) {
-                await (track as MediaStreamTrack).applyConstraints({ advanced: [adv] } as unknown as MediaTrackConstraints);
+                await (track as MediaStreamTrack).applyConstraints({ advanced: [adv as MediaTrackConstraints] } as unknown as MediaTrackConstraints);
               }
-            } catch {}
+            } catch (e) {
+              // ignore
+            }
           }
         }
-      } catch {}
+      } catch (e) {
+        // ignore
+      }
     } catch (err) {
       console.error('Camera error', err);
       toast({ title: 'Camera error', description: 'Unable to access camera. Check permissions.', variant: 'destructive' });
     }
   }, [cameraFacing]);
+
+  const handleTapToFocus = useCallback(async (e: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>) => {
+    if (!isMobile) return; // Only attempt focus on phones
+    const container = e.currentTarget as HTMLElement;
+    const rect = container.getBoundingClientRect();
+    const clientX = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
+    const clientY = 'touches' in e ? e.touches[0].clientY : (e as React.MouseEvent).clientY;
+    const x = (clientX - rect.left) / rect.width;
+    const y = (clientY - rect.top) / rect.height;
+    setFocusPoint({ x, y });
+    setTimeout(() => setFocusPoint(null), 900);
+
+    try {
+      const stream = streamRef.current;
+      if (!stream) return;
+      const track = stream.getVideoTracks()[0];
+      // Try ImageCapture API first (best support for tap-to-focus on Chrome Android)
+      type ImageCaptureCtor = new (t: MediaStreamTrack) => { setOptions?: (opts: unknown) => Promise<void> };
+      const anyWindow = window as unknown as { ImageCapture?: ImageCaptureCtor };
+      if (anyWindow.ImageCapture) {
+        const ic = new anyWindow.ImageCapture(track);
+        try {
+          await (ic.setOptions?.({ pointsOfInterest: [ { x, y } ], focusMode: 'single-shot' }) ?? Promise.resolve());
+          return;
+        } catch {
+          // fall through to constraints path
+        }
+      }
+
+      // Fallback: Try non-standard track constraints
+      await (track as unknown as { applyConstraints: (c: unknown) => Promise<void> }).applyConstraints({ advanced: [ { pointsOfInterest: [ { x, y } ] }, { focusMode: 'single-shot' } ] });
+    } catch {
+      // Ignore if not supported
+    }
+  }, [isMobile]);
 
   useEffect(() => {
     if (!showCamera) {
@@ -629,7 +670,11 @@ Example: Water, Sodium Lauryl Sulfate, Cocamidopropyl Betaine, Sodium Chloride, 
               <h3 className="text-xl font-semibold">Camera</h3>
               
               {/* Camera Preview Area */}
-              <div className="relative bg-gray-200 dark:bg-gray-700 rounded-xl h-[70vh] md:h-64 flex items-center justify-center">
+              <div
+                className="relative bg-gray-200 dark:bg-gray-700 rounded-xl h-[70vh] md:h-64 flex items-center justify-center"
+                onClick={handleTapToFocus}
+                onTouchStart={handleTapToFocus}
+              >
                 <video
                   ref={videoRef}
                   className="w-full h-full object-contain rounded-xl bg-black"
@@ -637,6 +682,18 @@ Example: Water, Sodium Lauryl Sulfate, Cocamidopropyl Betaine, Sodium Chloride, 
                   playsInline
                   muted
                 />
+                {focusPoint && (
+                  <span
+                    className="absolute border-2 border-emerald-400 rounded-full pointer-events-none"
+                    style={{
+                      left: `calc(${focusPoint.x * 100}% - 16px)`,
+                      top: `calc(${focusPoint.y * 100}% - 16px)`,
+                      width: '32px',
+                      height: '32px',
+                      boxShadow: '0 0 0 4px rgba(16,185,129,0.35)'
+                    }}
+                  />
+                )}
                 <button
                   onClick={() => setCameraFacing(prev => prev === 'user' ? 'environment' : 'user')}
                   className="absolute top-2 right-2 bg-white/80 dark:bg-gray-900/60 hover:bg-white text-emerald-600 rounded-full p-2 shadow"
