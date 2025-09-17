@@ -163,14 +163,14 @@ const DecodePage: React.FC = () => {
           aspectRatio: { ideal: 16/9 }
         }
       };
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      let stream = await navigator.mediaDevices.getUserMedia(constraints);
       streamRef.current = stream;
       const video = videoRef.current;
       if (video) {
         video.srcObject = stream;
         await video.play();
       }
-      // Try to minimize zoom if available
+      // Try to minimize/normalize zoom (~1x) if available
       try {
         const track = stream.getVideoTracks()[0];
         const capsUnknown: unknown = typeof (track as { getCapabilities?: () => unknown }).getCapabilities === 'function'
@@ -178,7 +178,7 @@ const DecodePage: React.FC = () => {
           : undefined;
         if (capsUnknown && typeof capsUnknown === 'object' && 'zoom' in (capsUnknown as Record<string, unknown>)) {
           const zoomCaps = (capsUnknown as { zoom?: { min?: number } }).zoom;
-          const minZoom = (zoomCaps && typeof zoomCaps.min === 'number') ? zoomCaps.min : 1;
+          const minZoom = (zoomCaps && typeof zoomCaps.min === 'number') ? Math.max(1, zoomCaps.min) : 1;
           await (track as MediaStreamTrack).applyConstraints(
             { advanced: [ { zoom: minZoom } ] } as unknown as MediaTrackConstraints
           );
@@ -186,6 +186,50 @@ const DecodePage: React.FC = () => {
       } catch (e) {
         // Ignore zoom capability errors gracefully
       }
+
+      // If back camera looks ultra‑wide, prefer a more standard lens after permission
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videos = devices.filter(d => d.kind === 'videoinput');
+        const preferBack = videos.find(d => /back|rear|environment/i.test(d.label) && !/ultra|wide|0\.5|macro/i.test(d.label));
+        const anyBack = videos.find(d => /back|rear|environment/i.test(d.label));
+        const target = preferBack || anyBack;
+        if (target) {
+          // If current track doesn't match target deviceId, switch
+          const currentId = (stream.getVideoTracks()[0].getSettings && stream.getVideoTracks()[0].getSettings().deviceId) as string | undefined;
+          if (!currentId || currentId !== target.deviceId) {
+            // Switch to chosen device
+            const alt = await navigator.mediaDevices.getUserMedia({
+              video: {
+                deviceId: { exact: target.deviceId },
+                width: { ideal: 1280 },
+                height: { ideal: 720 },
+                aspectRatio: { ideal: 16/9 }
+              }
+            });
+            // replace stream
+            stream.getTracks().forEach(t => t.stop());
+            stream = alt;
+            streamRef.current = alt;
+            if (videoRef.current) {
+              videoRef.current.srcObject = alt;
+              await videoRef.current.play();
+            }
+            // normalize zoom to 1x if supported
+            try {
+              const track = alt.getVideoTracks()[0];
+              const capsUnknown2: unknown = typeof (track as { getCapabilities?: () => unknown }).getCapabilities === 'function'
+                ? (track as { getCapabilities: () => unknown }).getCapabilities()
+                : undefined;
+              if (capsUnknown2 && typeof capsUnknown2 === 'object' && 'zoom' in (capsUnknown2 as Record<string, unknown>)) {
+                await (track as MediaStreamTrack).applyConstraints(
+                  { advanced: [ { zoom: 1 } ] } as unknown as MediaTrackConstraints
+                );
+              }
+            } catch {}
+          }
+        }
+      } catch {}
     } catch (err) {
       console.error('Camera error', err);
       toast({ title: 'Camera error', description: 'Unable to access camera. Check permissions.', variant: 'destructive' });
