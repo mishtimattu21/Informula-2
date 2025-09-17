@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Upload, Camera } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { analyzeImageFile, analyzeImage, analyzeText } from '@/services/api';
+import type { AnalysisResponse } from '@/services/api';
 import { useUser } from '@clerk/clerk-react';
 import { useTheme } from '../components/ThemeProvider';
 import { toast } from '@/hooks/use-toast';
@@ -115,7 +116,7 @@ const DecodePage: React.FC = () => {
     try {
       // Send Clerk user id so backend can pull profile from Supabase for personalized analysis
       const userId = isSignedIn && user ? user.id : undefined;
-      let result: any;
+      let result: AnalysisResponse | string | undefined;
       const finalProductType = productType === 'other' && customProductType ? customProductType : productType;
       
       if (activeTab === 'upload' && uploadedFile) {
@@ -129,12 +130,13 @@ const DecodePage: React.FC = () => {
       if (!result) throw new Error('No result');
       // Ensure object if backend returns JSON string
       if (typeof result === 'string') {
-        try { result = JSON.parse(result); } catch {}
+        try { result = JSON.parse(result); } catch (e) { /* ignore parse error */ }
       }
       // Persist to navigation state or a store; navigating with state for now
       navigate('/results', { state: { analysis: result } });
-    } catch (err: any) {
-      toast({ title: 'Analysis failed', description: err.message || String(err), variant: 'destructive' });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      toast({ title: 'Analysis failed', description: message, variant: 'destructive' });
     }
   };
 
@@ -156,8 +158,8 @@ const DecodePage: React.FC = () => {
       {/* Main Content */}
       <div className="container mx-auto px-4 py-1">
         <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-12">
-            <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-emerald-600 to-teal-500 bg-clip-text text-transparent relative z-10 pb-2 leading-tight">
+          <div className="text-center mb-6 md:mb-12">
+            <h1 className="text-2xl sm:text-3xl md:text-5xl font-bold mb-2 md:mb-4 bg-gradient-to-r from-emerald-600 to-teal-500 bg-clip-text text-transparent relative z-10 pb-1 md:pb-2 leading-tight">
               Decode Your Ingredients
             </h1>
             
@@ -165,51 +167,54 @@ const DecodePage: React.FC = () => {
 
           {/* Method Selection Tabs */}
           <div className="flex justify-center mb-4">
-            <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-2 flex space-x-2">
-              {[
-                { id: 'scan', label: 'Scan/Camera' },
-                { id: 'upload', label: 'Upload Image' },
-                { id: 'type', label: 'Type Ingredients' }
+			  <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-1 md:p-2 flex flex-row flex-wrap items-center justify-center gap-2 w-full max-w-xl mx-auto">
+				{[
+				  { id: 'scan', mobile: 'Scan', desktop: 'Scan/Camera' },
+				  { id: 'upload', mobile: 'Upload', desktop: 'Upload Image' },
+				  { id: 'type', mobile: 'Type', desktop: 'Type Ingredients' }
               ].map((tab) => (
                 <button
                   key={tab.id}
-                  onClick={() => setActiveTab(tab.id as any)}
-                  className={`px-6 py-3 rounded-xl transition-all duration-500 ease-in-out flex items-center justify-center ${
+					  onClick={() => setActiveTab(tab.id as 'scan' | 'upload' | 'type')}
+					className={`shrink-0 px-4 md:px-6 py-2.5 md:py-3 rounded-xl transition-all duration-500 ease-in-out inline-flex items-center justify-center ${
                     activeTab === tab.id
                       ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg transform scale-105'
-                      : 'text-foreground/70 hover:text-foreground hover:bg-white/50 dark:hover:bg-gray-700 hover:scale-102'
+						: 'text-foreground/70 hover:text-foreground hover:bg-white/50 dark:hover:bg-gray-700'
                   }`}
                 >
-                  <span className="font-medium">{tab.label}</span>
+					<span className="text-sm md:text-base font-medium">
+						<span className="md:hidden">{tab.mobile}</span>
+						<span className="hidden md:inline">{tab.desktop}</span>
+					</span>
                 </button>
               ))}
             </div>
           </div>
 
           {/* Content Area */}
-          <Card className="rounded-2xl shadow-lg border-2 border-emerald-200 dark:border-emerald-800 mb-8">
-            <CardContent className="p-8">
+          <Card className="rounded-2xl shadow-lg border-2 border-emerald-200 dark:border-emerald-800 mb-20 md:mb-8">
+            <CardContent className="p-3 md:p-8">
               {activeTab === 'scan' && (
-                <div className="space-y-6">
-                  <div className="text-center space-y-6">
+                <div className="space-y-4 md:space-y-6">
+                  <div className="text-center space-y-4 md:space-y-6">
                     {!capturedImage ? (
                       <>
                         <button
                           onClick={() => setShowCamera(true)}
-                          className="w-32 h-32 mx-auto bg-gradient-to-r from-emerald-500 to-teal-500 rounded-2xl flex items-center justify-center hover:from-emerald-600 hover:to-teal-600 transition-all duration-300 transform hover:scale-105 shadow-lg"
+                          className="w-20 h-20 md:w-32 md:h-32 mx-auto bg-gradient-to-r from-emerald-500 to-teal-500 rounded-2xl flex items-center justify-center hover:from-emerald-600 hover:to-teal-600 transition-all duration-300 shadow-lg"
                         >
-                          <Camera className="w-16 h-16 text-white" />
+                          <Camera className="w-8 h-8 md:w-16 md:h-16 text-white" />
                         </button>
-                        <p className="text-lg font-medium">Tap to Scan</p>
+                        <p className="text-sm md:text-lg font-medium">Tap to Scan</p>
                       </>
                     ) : (
                       <div className="space-y-4">
-                        <h3 className="text-2xl font-semibold">Image Captured</h3>
+                        <h3 className="text-xl md:text-2xl font-semibold">Image Captured</h3>
                         <div className="max-w-sm mx-auto">
                           <img 
                             src={capturedImage} 
                             alt="Captured ingredient label" 
-                            className="w-full h-48 object-cover rounded-xl border-2 border-emerald-200 dark:border-emerald-800 cursor-pointer hover:opacity-80 transition-opacity"
+                            className="w-full h-36 md:h-48 object-cover rounded-xl border-2 border-emerald-200 dark:border-emerald-800 cursor-pointer hover:opacity-80 transition-opacity"
                             onClick={() => {
                               setModalImage(capturedImage);
                               setShowImageModal(true);
@@ -237,21 +242,21 @@ const DecodePage: React.FC = () => {
                   </div>
 
                   {/* Product Information Fields */}
-                  <div className="pt-6 border-t border-gray-200 dark:border-gray-700">
+                  <div className="pt-4 md:pt-6 border-t border-gray-200 dark:border-gray-700">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-medium mb-2">Product Name (Optional)</label>
+                        <label className="block text-xs md:text-sm font-medium mb-2">Product Name (Optional)</label>
                         <Input
                           placeholder="e.g., Neutrogena Ultra Sheer Sunscreen"
                           value={productName}
                           onChange={(e) => setProductName(e.target.value)}
-                          className="rounded-xl border-2 border-gray-200 dark:border-gray-700 focus:border-emerald-500"
+                          className="h-10 md:h-11 text-sm md:text-base rounded-xl border-2 border-gray-200 dark:border-gray-700 focus:border-emerald-500"
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium mb-2">Product Type (Optional)</label>
+                        <label className="block text-xs md:text-sm font-medium mb-2">Product Type (Optional)</label>
                         <Select value={productType} onValueChange={handleProductTypeChange}>
-                          <SelectTrigger className="rounded-xl border-2 border-gray-200 dark:border-gray-700 focus:border-emerald-500">
+                          <SelectTrigger className="h-10 md:h-11 text-sm md:text-base rounded-xl border-2 border-gray-200 dark:border-gray-700 focus:border-emerald-500">
                             <SelectValue placeholder="Select product type" />
                           </SelectTrigger>
                           <SelectContent>
@@ -274,7 +279,7 @@ const DecodePage: React.FC = () => {
                             placeholder="Specify product type..."
                             value={customProductType}
                             onChange={(e) => setCustomProductType(e.target.value)}
-                            className="mt-2 rounded-xl border-2 border-gray-200 dark:border-gray-700 focus:border-emerald-500"
+                            className="mt-2 h-10 md:h-11 text-sm md:text-base rounded-xl border-2 border-gray-200 dark:border-gray-700 focus:border-emerald-500"
                           />
                         )}
                       </div>
@@ -289,14 +294,14 @@ const DecodePage: React.FC = () => {
                     onDragOver={handleDragOver}
                     onDragLeave={handleDragLeave}
                     onDrop={handleDrop}
-                    className={`border-2 border-dashed rounded-2xl p-8 text-center transition-all duration-300 ${
+                    className={`border-2 border-dashed rounded-2xl p-3 md:p-8 text-center transition-all duration-300 ${
                       isDragging 
                         ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/30' 
                         : 'border-gray-300 dark:border-gray-600 hover:border-emerald-400'
                     }`}
                   >
-                    <Upload className="w-16 h-16 mx-auto mb-4 text-emerald-500" />
-                    <h3 className="text-xl font-semibold mb-2">Drop your image here</h3>
+                    <Upload className="w-10 h-10 md:w-16 md:h-16 mx-auto mb-2 md:mb-4 text-emerald-500" />
+                    <h3 className="text-base md:text-xl font-semibold mb-1 md:mb-2">Drop your image here</h3>
                     <p className="text-foreground/70 mb-4">or click to browse files</p>
                     <input
                       type="file"
@@ -347,7 +352,7 @@ const DecodePage: React.FC = () => {
                         <img 
                           src={URL.createObjectURL(uploadedFile)} 
                           alt="Uploaded image preview" 
-                          className="w-full h-48 object-cover rounded-xl border-2 border-emerald-200 dark:border-emerald-800 cursor-pointer hover:opacity-80 transition-opacity"
+                          className="w-full h-36 md:h-48 object-cover rounded-xl border-2 border-emerald-200 dark:border-emerald-800 cursor-pointer hover:opacity-80 transition-opacity"
                           onClick={() => {
                             const imageUrl = URL.createObjectURL(uploadedFile);
                             setModalImage(imageUrl);
@@ -359,21 +364,21 @@ const DecodePage: React.FC = () => {
                   )}
 
                   {/* Product Information Fields */}
-                  <div className="pt-6 border-t border-gray-200 dark:border-gray-700">
+                  <div className="pt-4 md:pt-6 border-t border-gray-200 dark:border-gray-700">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-medium mb-2">Product Name (Optional)</label>
+                        <label className="block text-xs md:text-sm font-medium mb-2">Product Name (Optional)</label>
                         <Input
                           placeholder="e.g., Neutrogena Ultra Sheer Sunscreen"
                           value={productName}
                           onChange={(e) => setProductName(e.target.value)}
-                          className="rounded-xl border-2 border-gray-200 dark:border-gray-700 focus:border-emerald-500"
+                          className="h-10 md:h-11 text-sm md:text-base rounded-xl border-2 border-gray-200 dark:border-gray-700 focus:border-emerald-500"
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium mb-2">Product Type (Optional)</label>
+                        <label className="block text-xs md:text-sm font-medium mb-2">Product Type (Optional)</label>
                         <Select value={productType} onValueChange={handleProductTypeChange}>
-                          <SelectTrigger className="rounded-xl border-2 border-gray-200 dark:border-gray-700 focus:border-emerald-500">
+                          <SelectTrigger className="h-10 md:h-11 text-sm md:text-base rounded-xl border-2 border-gray-200 dark:border-gray-700 focus:border-emerald-500">
                             <SelectValue placeholder="Select product type" />
                           </SelectTrigger>
                           <SelectContent>
@@ -396,7 +401,7 @@ const DecodePage: React.FC = () => {
                             placeholder="Specify product type..."
                             value={customProductType}
                             onChange={(e) => setCustomProductType(e.target.value)}
-                            className="mt-2 rounded-xl border-2 border-gray-200 dark:border-gray-700 focus:border-emerald-500"
+                            className="mt-2 h-10 md:h-11 text-sm md:text-base rounded-xl border-2 border-gray-200 dark:border-gray-700 focus:border-emerald-500"
                           />
                         )}
                       </div>
@@ -408,13 +413,13 @@ const DecodePage: React.FC = () => {
               {activeTab === 'type' && (
                 <div className="space-y-6">
                   <div>
-                    <h3 className="text-xl font-semibold mb-4">Enter Ingredients</h3>
+                    <h3 className="text-lg md:text-xl font-semibold mb-3 md:mb-4">Enter Ingredients</h3>
                     <Textarea
-                      placeholder="Type or paste ingredient list here... 
-Example: Water, Sodium Lauryl Sulfate, Cocamidopropyl Betaine, Sodium Chloride, Glycerin, Citric Acid, Sodium Benzoate..."
+                      placeholder={`Type or paste ingredient list here... 
+Example: Water, Sodium Lauryl Sulfate, Cocamidopropyl Betaine, Sodium Chloride, Glycerin, Citric Acid, Sodium Benzoate...`}
                       value={ingredients}
                       onChange={(e) => setIngredients(e.target.value)}
-                      className="min-h-[200px] rounded-xl border-2 border-gray-200 dark:border-gray-700 focus:border-emerald-500 transition-colors text-base"
+                      className="min-h-[140px] md:min-h-[200px] rounded-xl border-2 border-gray-200 dark:border-gray-700 focus:border-emerald-500 transition-colors text-sm md:text-base"
                     />
                   </div>
                   
@@ -477,13 +482,25 @@ Example: Water, Sodium Lauryl Sulfate, Cocamidopropyl Betaine, Sodium Chloride, 
           </Card>
 
           {/* Analyze Button */}
-          <div className="text-center">
+          {/* Desktop */}
+          <div className="hidden md:block text-center">
             <Button 
               onClick={handleAnalyze}
-              className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white px-12 py-6 text-lg rounded-2xl shadow-lg hover:shadow-emerald-500/25 transition-all duration-300 transform hover:scale-105"
+              className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white px-12 py-6 text-lg rounded-2xl shadow-lg hover:shadow-emerald-500/25 transition-all duration-300"
             >
               Analyze Ingredients
             </Button>
+          </div>
+          {/* Mobile sticky footer */}
+          <div className="md:hidden fixed inset-x-0 bottom-0 z-40 bg-background/90 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-t border-gray-200 dark:border-gray-800 p-2">
+            <div className="container mx-auto px-0">
+            <Button 
+              onClick={handleAnalyze}
+                className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white py-3 text-sm rounded-xl shadow-lg"
+            >
+              Analyze Ingredients
+            </Button>
+            </div>
           </div>
         </div>
       </div>

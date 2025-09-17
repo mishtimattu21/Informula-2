@@ -6,40 +6,40 @@ const StepsSection: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const stepsContainerRef = useRef<HTMLDivElement>(null);
 
-  const steps = [
-    {
-      number: "01",
-      title: "Scan or Input",
-      description: "Flip the product and scan the ingredient list, upload an image, or type ingredients manually",
-      icon: Camera,
-      color: "from-blue-500 to-cyan-500",
-      details: "Use your device camera to capture ingredient lists instantly"
-    },
-    {
-      number: "02", 
-      title: "AI Processing",
-      description: "Our AI analyzes each ingredient using scientific databases and research",
-      icon: Brain,
-      color: "from-emerald-500 to-teal-500",
-      details: "Advanced algorithms cross-reference with PubChem and FDA databases"
-    },
-    {
-      number: "03",
-      title: "Detailed Analysis",
-      description: "Get comprehensive analysis of each ingredient in an informative and concise manner",
-      icon: Database,
-      color: "from-purple-500 to-pink-500",
-      details: "Receive personalized insights based on your health profile"
-    },
-    {
-      number: "04",
-      title: "Interactive Results",
-      description: "Click on any ingredient to get detailed analysis along with source links",
-      icon: MessageCircle,
-      color: "from-orange-500 to-red-500",
-      details: "Ask follow-up questions and get expert-level explanations"
-    }
-  ];
+	const steps = [
+		{
+			number: "01",
+			title: "Snap the label",
+			description: "Open the camera or upload a photo. We detect the ingredient list automatically.",
+			icon: Camera,
+			color: "from-blue-500 to-cyan-500",
+			details: "Works on curved labels and low light. Or paste/type ingredients manually."
+		},
+		{
+			number: "02", 
+			title: "We read every ingredient",
+			description: "OCR extracts text and our parser cleans it for reliable analysis.",
+			icon: Brain,
+			color: "from-emerald-500 to-teal-500",
+			details: "No data is stored unless you choose to save it to your profile."
+		},
+		{
+			number: "03",
+			title: "Get a clear verdict",
+			description: "See risk level, flagged items, and plain‑language notes you can trust.",
+			icon: Database,
+			color: "from-purple-500 to-pink-500",
+			details: "Sources include PubChem, FDA guidance, and peer‑reviewed studies."
+		},
+		{
+			number: "04",
+			title: "Ask follow‑ups",
+			description: "Tap any ingredient to dig deeper or ask for safer alternatives.",
+			icon: MessageCircle,
+			color: "from-orange-500 to-red-500",
+			details: "Answers adapt to your allergies and preferences."
+		}
+	];
 
   useEffect(() => {
     const handleScroll = () => {
@@ -72,25 +72,53 @@ const StepsSection: React.FC = () => {
 
   return (
     <div>
-      {/* Header Section */}
-      <section className="py-8 bg-gradient-to-br from-background to-emerald-50/30 dark:to-emerald-950/20">
-        <div className="container mx-auto px-4 text-center">
-          <h2 className="text-3xl md:text-4xl font-bold mb-3">
-            How It <span className="bg-gradient-to-r from-emerald-600 to-teal-500 bg-clip-text text-transparent">Works</span>
-          </h2>
-          <p className="text-foreground/70 text-base max-w-xl mx-auto">
-            Our intelligent system makes ingredient analysis simple and comprehensive
-          </p>
-        </div>
-      </section>
+		{/* Header Section */}
+		<section className="py-8 bg-gradient-to-br from-background to-emerald-50/30 dark:to-emerald-950/20">
+			<div className="container mx-auto px-4 text-center">
+				<h2 className="text-3xl md:text-4xl font-bold mb-3">
+					How <span className="bg-gradient-to-r from-emerald-600 to-teal-500 bg-clip-text text-transparent">Informula</span> works
+				</h2>
+				<p className="text-foreground/70 text-base max-w-xl mx-auto">
+					From a quick photo to clear answers you can act on.
+				</p>
+			</div>
+		</section>
 
-      {/* Sticky Steps Section */}
-      <section 
-        ref={containerRef}
-        className="relative"
-        style={{ height: `${steps.length * 80}vh` }}
-      >
-        <div className="sticky top-0 h-screen flex items-center bg-gradient-to-br from-background to-emerald-50/30 dark:to-emerald-950/20">
+		{/* Mobile-first simple list (hidden on large screens) */}
+		<section className="lg:hidden bg-gradient-to-br from-background to-emerald-50/30 dark:to-emerald-950/20">
+			<div className="container mx-auto px-4 pb-4">
+				<div className="space-y-4">
+					{steps.map((step, index) => {
+						const IconComponent = step.icon;
+						return (
+							<div key={index} className="p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-background/80 backdrop-blur-sm">
+								<div className="flex items-start gap-3">
+									<div className={`w-10 h-10 rounded-xl bg-gradient-to-r ${step.color} flex items-center justify-center text-white shadow-md`}>
+										<IconComponent size={18} />
+									</div>
+									<div className="flex-1">
+										<div className="flex items-center gap-2">
+											<h3 className="text-base font-semibold">{step.title}</h3>
+											<span className="text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">{step.number}</span>
+										</div>
+										<p className="text-sm text-foreground/70 mt-1">{step.description}</p>
+										<p className="text-xs text-emerald-600 dark:text-emerald-400 mt-2">{step.details}</p>
+									</div>
+								</div>
+							</div>
+						);
+					})}
+				</div>
+			</div>
+		</section>
+
+		{/* Sticky Steps Section (desktop) */}
+		<section 
+			ref={containerRef}
+			className="relative hidden lg:block"
+			style={{ height: `${steps.length * 80}vh` }}
+		>
+			<div className="sticky top-0 h-screen flex items-center bg-gradient-to-br from-background to-emerald-50/30 dark:to-emerald-950/20">
           <div className="container mx-auto px-4">
             <div className="max-w-6xl mx-auto">
               <div className="grid lg:grid-cols-2 gap-8 items-center">
