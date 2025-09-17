@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Upload, Camera } from 'lucide-react';
+import { Upload, Camera, RefreshCcw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { analyzeImageFile, analyzeImage, analyzeText } from '@/services/api';
 import type { AnalysisResponse } from '@/services/api';
@@ -20,6 +20,9 @@ const DecodePage: React.FC = () => {
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [showCamera, setShowCamera] = useState(false);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const [cameraFacing, setCameraFacing] = useState<'user' | 'environment'>('environment');
   const [showImageModal, setShowImageModal] = useState(false);
   const [modalImage, setModalImage] = useState<string | null>(null);
   const [productName, setProductName] = useState('');
@@ -149,15 +152,26 @@ const DecodePage: React.FC = () => {
   }, []);
 
   const startCamera = useCallback(() => {
-    navigator.mediaDevices.getUserMedia({
-      video: {
-        facingMode: { ideal: cameraFacing },
-        width: { ideal: 1920 },
-        height: { ideal: 1080 }
-      }
-    })
-      .then(stream => {
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: cameraFacing } } })
+      .then(async stream => {
         streamRef.current = stream;
+        // Try to reset any optical/digital zoom if supported
+        try {
+          const track = stream.getVideoTracks()[0];
+          const capsUnknown: unknown = typeof (track as { getCapabilities?: () => unknown }).getCapabilities === 'function'
+            ? (track as { getCapabilities: () => unknown }).getCapabilities()
+            : undefined;
+          if (capsUnknown && typeof capsUnknown === 'object' && 'zoom' in (capsUnknown as Record<string, unknown>)) {
+            const zoomCaps = (capsUnknown as { zoom?: { min?: number } }).zoom;
+            const minZoom = (zoomCaps && typeof zoomCaps.min === 'number') ? zoomCaps.min : 1;
+            await (track as MediaStreamTrack).applyConstraints(
+              { advanced: [ { zoom: minZoom } ] } as unknown as MediaTrackConstraints
+            );
+          }
+        } catch (e) {
+          // Ignore if zoom capability not available
+        }
+
         const video = videoRef.current;
         if (video) {
           video.srcObject = stream;
@@ -226,7 +240,6 @@ const DecodePage: React.FC = () => {
                   }`}
 				  >
 					<span className="text-sm md:text-base font-medium inline-flex items-center gap-2">
-						<img src={tab.icon} alt="" aria-hidden="true" className="h-4 w-4 md:h-5 md:w-5" />
 						<span className="md:hidden">{tab.mobile}</span>
 						<span className="hidden md:inline">{tab.desktop}</span>
 					</span>
@@ -571,31 +584,22 @@ Example: Water, Sodium Lauryl Sulfate, Cocamidopropyl Betaine, Sodium Chloride, 
                 >
                   <RefreshCcw className="w-5 h-5" />
                 </button>
-                {/* 1x badge for clarity */}
-                <div className="absolute bottom-2 right-2 px-2 py-1 rounded-full text-xs bg-white/70 dark:bg-gray-900/60 text-foreground">1x</div>
               </div>
 
               {/* Capture Button */}
               <div className="flex justify-center space-x-4">
                 <Button
                   onClick={() => {
-                    const video = document.querySelector('video');
-                    if (video) {
-                      const canvas = document.createElement('canvas');
-                      canvas.width = video.videoWidth;
-                      canvas.height = video.videoHeight;
-                      const ctx = canvas.getContext('2d');
-                      ctx?.drawImage(video, 0, 0);
-                      const imageData = canvas.toDataURL('image/jpeg');
-                      
-                      // Stop camera stream
-                      const stream = video.srcObject as MediaStream;
-                      if (stream) {
-                        stream.getTracks().forEach(track => track.stop());
-                      }
-                      
-                      handleCameraCapture(imageData);
-                    }
+                    const video = videoRef.current as HTMLVideoElement | null;
+                    if (!video) return;
+                    const canvas = document.createElement('canvas');
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                    const ctx = canvas.getContext('2d');
+                    ctx?.drawImage(video, 0, 0);
+                    const imageData = canvas.toDataURL('image/jpeg');
+                    stopCamera();
+                    handleCameraCapture(imageData);
                   }}
                   className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white px-8 py-3 rounded-xl"
                 >
@@ -604,13 +608,7 @@ Example: Water, Sodium Lauryl Sulfate, Cocamidopropyl Betaine, Sodium Chloride, 
                 </Button>
                 <Button
                   onClick={() => {
-                    const video = document.querySelector('video');
-                    if (video) {
-                      const stream = video.srcObject as MediaStream;
-                      if (stream) {
-                        stream.getTracks().forEach(track => track.stop());
-                      }
-                    }
+                    stopCamera();
                     setShowCamera(false);
                   }}
                   variant="outline"
