@@ -3,7 +3,7 @@
 const features = [
   {
     title: 'AI-Powered Analysis',
-    description: 'Advanced machine learning algorithms analyze thousands of ingredients in seconds',
+    description: 'Our engine parses labels, normalizes ingredient names and maps them to trusted safety sources to generate a clean product profile in seconds. Each ingredient is scored for risk and relevance to you, so results are fast, factual and easy to act on.',
     image: '/ai_powered.png',
     gradient: 'from-emerald-500 to-teal-500',
     className: 'lg:col-span-2 lg:row-span-2',
@@ -100,6 +100,14 @@ const FeaturesSection = () => {
                   <p className={`text-gray-600 dark:text-gray-400 leading-relaxed ${isLarge ? 'text-base' : 'text-sm'}`}>
                     {feature.description}
                   </p>
+                  {isLarge && feature.title === 'AI-Powered Analysis' && (
+                    <ul className={`mt-3 space-y-2 ${isLarge ? 'text-base' : 'text-sm'} text-gray-600 dark:text-gray-400 list-disc list-inside`}>
+                      <li>LLM‑backed summaries with source links</li>
+                      <li>Personalized by your allergies and diet type</li>
+                      <li>Flags potential interactions and regulations</li>
+                      <li>Clear scores and simple next steps</li>
+                    </ul>
+                  )}
                 </div>
 
                 {/* Hover Glow Effect (standardized to emerald) */}
