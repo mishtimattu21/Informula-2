@@ -1,0 +1,18 @@
+# Core web framework
+fastapi
+uvicorn[standard]
+
+# Env configuration
+python-dotenv
+
+# LLM client (Google Gemini)
+google-generativeai
+
+# Supabase client
+supabase
+
+# OCR HTTP calls (Azure Computer Vision)
+requests
+
+# Needed by FastAPI for handling file uploads (UploadFile / Form)
+python-multipart
