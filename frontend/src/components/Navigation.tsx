@@ -4,11 +4,13 @@ import { Button } from '@/components/ui/button';
 import { Moon, Sun, MessageSquare } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import FeedbackModal from './FeedbackModal';
+import AuthModal from './AuthModal';
 import { useUser, UserButton } from '@clerk/clerk-react';
 
 const Navigation: React.FC = () => {
   const { theme, toggleTheme } = useTheme();
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
+  const [isAuthOpen, setIsAuthOpen] = useState(false);
   const navigate = useNavigate();
   const { isSignedIn } = useUser();
 
@@ -86,7 +88,7 @@ const Navigation: React.FC = () => {
                 <Button 
                   variant="outline" 
                   size="sm"
-                  onClick={() => navigate('/auth')}
+                  onClick={() => setIsAuthOpen(true)}
                 >
                   Sign In
                 </Button>
@@ -100,6 +102,7 @@ const Navigation: React.FC = () => {
         isOpen={isFeedbackOpen}
         onClose={() => setIsFeedbackOpen(false)}
       />
+      <AuthModal open={isAuthOpen} onClose={() => setIsAuthOpen(false)} />
     </>
   );
 };
