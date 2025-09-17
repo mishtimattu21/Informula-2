@@ -52,6 +52,18 @@ const CameraInterface: React.FC<CameraInterfaceProps> = ({ onCapture, onClose })
     }
   };
 
+  // Explicit helper to start in a given mode (handy on mobile)
+  const startCameraWithMode = async (mode: 'environment' | 'user') => {
+    setFacingMode(mode);
+    // if stream running, stop first
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(t => t.stop());
+      streamRef.current = null;
+    }
+    setIsStreaming(false);
+    await startCamera();
+  };
+
   const captureImage = () => {
     if (videoRef.current && canvasRef.current) {
       const canvas = canvasRef.current;
@@ -160,10 +172,16 @@ const CameraInterface: React.FC<CameraInterfaceProps> = ({ onCapture, onClose })
               <div className="absolute inset-0 flex flex-col items-center justify-center text-white">
                 <Camera size={64} className="mb-4 opacity-50" />
                 <p className="text-lg mb-4">Ready to scan ingredient labels</p>
-                <Button onClick={startCamera} className="bg-emerald-500 hover:bg-emerald-600">
-                  <Camera className="mr-2" size={16} />
-                  Start Camera
-                </Button>
+                <div className="flex gap-3">
+                  <Button onClick={() => startCameraWithMode('environment')} className="bg-emerald-500 hover:bg-emerald-600">
+                    <Camera className="mr-2" size={16} />
+                    Back Camera
+                  </Button>
+                  <Button onClick={() => startCameraWithMode('user')} variant="outline" className="bg-white/10 border-white/30 text-white">
+                    <Camera className="mr-2" size={16} />
+                    Front
+                  </Button>
+                </div>
               </div>
             )}
 
@@ -197,12 +215,15 @@ const CameraInterface: React.FC<CameraInterfaceProps> = ({ onCapture, onClose })
             )}
 
             {capturedImage && (
-              <img
-                src={capturedImage}
-                alt="Captured"
-                className="w-full h-full object-contain"
-                style={{ transform: `scale(${zoom}) rotate(${rotation}deg)`, transition: 'transform 0.2s' }}
-              />
+              <>
+                <img
+                  src={capturedImage}
+                  alt="Captured"
+                  className="w-full h-full object-contain"
+                  style={{ transform: `scale(${zoom}) rotate(${rotation}deg)`, transition: 'transform 0.2s' }}
+                />
+                <div className="absolute top-3 right-3 bg-black/40 text-white text-xs rounded-md px-2 py-1">Preview</div>
+              </>
             )}
           </div>
 
