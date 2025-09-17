@@ -41,10 +41,10 @@ const CameraInterface: React.FC<CameraInterfaceProps> = ({ onCapture, onClose })
     };
   }, []);
 
-  // Auto-start back camera on mobile for convenience
+  // Auto-start with FRONT camera for a simple UX (flip icon toggles to back)
   useEffect(() => {
-    if (isMobile && !isStreaming && !capturedImage) {
-      const timer = setTimeout(() => startCameraWithMode('environment'), 300);
+    if (!isStreaming && !capturedImage) {
+      const timer = setTimeout(() => startCameraWithMode('user'), 250);
       return () => clearTimeout(timer);
     }
   }, [isMobile, isStreaming, capturedImage]);
@@ -349,40 +349,13 @@ const CameraInterface: React.FC<CameraInterfaceProps> = ({ onCapture, onClose })
             </Button>
           </div>
 
-          {/* Camera View */}
+            {/* Camera View */}
           <div className="relative aspect-video bg-gray-900 rounded-lg overflow-hidden mb-4">
-            {/* Initial state - camera selection */}
+            {/* Initial state - brief initializing overlay */}
             {!isStreaming && !capturedImage && (
               <div className="absolute inset-0 flex flex-col items-center justify-center text-white p-4">
-                <Camera size={64} className="mb-4 opacity-50" />
-                <p className="text-base sm:text-lg mb-6 text-center">
-                  {isMobile ? "Choose your camera to scan ingredient labels" : "Ready to scan ingredient labels"}
-                </p>
-                
-                {/* Camera selection buttons */}
-                <div className="flex flex-col sm:flex-row gap-3 w-full max-w-md">
-                  <Button 
-                    onClick={() => startCameraWithMode('environment')} 
-                    className="bg-emerald-500 hover:bg-emerald-600 flex items-center justify-center gap-2 py-3"
-                  >
-                    <Camera size={18} />
-                    {isMobile ? "Back Camera (Recommended)" : "Back Camera"}
-                  </Button>
-                  <Button 
-                    onClick={() => startCameraWithMode('user')} 
-                    variant="outline" 
-                    className="bg-white/10 border-white/30 text-white hover:bg-white/20 flex items-center justify-center gap-2 py-3"
-                  >
-                    <Smartphone size={18} />
-                    Front Camera
-                  </Button>
-                </div>
-                
-                {isMobile && (
-                  <p className="text-xs text-gray-300 mt-3 text-center">
-                    💡 Back camera is recommended for better ingredient label scanning
-                  </p>
-                )}
+                <Camera size={48} className="mb-2 opacity-60" />
+                <p className="text-sm opacity-80">Initializing camera…</p>
               </div>
             )}
 
@@ -415,42 +388,17 @@ const CameraInterface: React.FC<CameraInterfaceProps> = ({ onCapture, onClose })
                   </div>
                 </div>
 
-                {/* Top controls */}
-                <div className="absolute top-3 left-3 flex items-center gap-2">
-                  <Button 
-                    onClick={() => startCameraWithMode('environment')} 
-                    size="sm" 
-                    className={`text-xs ${facingMode === 'environment' ? 'bg-emerald-600' : 'bg-emerald-500'} hover:bg-emerald-700 text-white`}
+                {/* Small flip icon (like ChatGPT) */}
+                <div className="absolute top-3 right-3">
+                  <button
+                    onClick={switchCamera}
+                    className="h-9 w-9 rounded-full bg-black/40 hover:bg-black/55 text-white flex items-center justify-center backdrop-blur-sm"
+                    aria-label="Flip camera"
+                    title="Flip camera"
                   >
-                    Back
-                  </Button>
-                  <Button 
-                    onClick={() => startCameraWithMode('user')} 
-                    size="sm" 
-                    variant="outline"
-                    className={`text-xs ${facingMode === 'user' ? 'bg-white/30' : 'bg-white/20'} text-white border-white/40 hover:bg-white/30`}
-                  >
-                    Front
-                  </Button>
+                    <RefreshCw size={16} />
+                  </button>
                 </div>
-
-                {/* Device selector (if multiple cameras available) */}
-                {videoDevices.length > 2 && (
-                  <div className="absolute top-3 right-3">
-                    <select
-                      value={selectedDeviceId}
-                      onChange={(e) => startCameraWithDevice(e.target.value)}
-                      className="text-xs bg-black/60 text-white border border-white/40 rounded-md px-2 py-1 backdrop-blur-sm"
-                    >
-                      <option value="">Select Camera</option>
-                      {videoDevices.map((device, index) => (
-                        <option key={device.deviceId} value={device.deviceId}>
-                          {device.label || `Camera ${index + 1}`}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
 
                 {/* Bottom instruction */}
                 <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex flex-col sm:flex-row items-center gap-2">
@@ -493,25 +441,7 @@ const CameraInterface: React.FC<CameraInterfaceProps> = ({ onCapture, onClose })
           <div className="flex justify-center flex-wrap gap-2 sm:gap-3">
             {isStreaming && !capturedImage && (
               <>
-                {/* Camera mode buttons */}
-                <Button 
-                  onClick={() => startCameraWithMode('environment')}
-                  variant={facingMode === 'environment' ? "default" : "outline"}
-                  className={`px-4 text-sm ${facingMode === 'environment' ? 'bg-emerald-500 hover:bg-emerald-600' : ''}`}
-                >
-                  <Monitor className="mr-2" size={16} />
-                  Back Camera
-                </Button>
-                <Button 
-                  onClick={() => startCameraWithMode('user')}
-                  variant={facingMode === 'user' ? "default" : "outline"}
-                  className={`px-4 text-sm ${facingMode === 'user' ? 'bg-emerald-500 hover:bg-emerald-600' : ''}`}
-                >
-                  <Smartphone className="mr-2" size={16} />
-                  Front Camera
-                </Button>
-                
-                {/* Capture button */}
+                {/* Capture button only */}
                 <Button 
                   onClick={captureImage}
                   className="bg-emerald-500 hover:bg-emerald-600 px-6 sm:px-8 py-3 text-base sm:text-lg font-semibold"
