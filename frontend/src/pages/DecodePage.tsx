@@ -20,9 +20,9 @@ const DecodePage: React.FC = () => {
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [showCamera, setShowCamera] = useState(false);
+  const [cameraFacing, setCameraFacing] = useState<'user' | 'environment'>('environment');
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  const [cameraFacing, setCameraFacing] = useState<'user' | 'environment'>('environment');
   const [showImageModal, setShowImageModal] = useState(false);
   const [modalImage, setModalImage] = useState<string | null>(null);
   const [productName, setProductName] = useState('');
@@ -143,58 +143,62 @@ const DecodePage: React.FC = () => {
     }
   };
 
+  // Fresh camera implementation using getUserMedia with explicit constraints
   const stopCamera = useCallback(() => {
-    const stream = streamRef.current;
-    if (stream) {
-      stream.getTracks().forEach(track => track.stop());
+    const s = streamRef.current;
+    if (s) {
+      s.getTracks().forEach(t => t.stop());
       streamRef.current = null;
     }
   }, []);
 
-  const startCamera = useCallback(() => {
-    navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: cameraFacing } } })
-      .then(async stream => {
-        streamRef.current = stream;
-        // Try to reset any optical/digital zoom if supported
-        try {
-          const track = stream.getVideoTracks()[0];
-          const capsUnknown: unknown = typeof (track as { getCapabilities?: () => unknown }).getCapabilities === 'function'
-            ? (track as { getCapabilities: () => unknown }).getCapabilities()
-            : undefined;
-          if (capsUnknown && typeof capsUnknown === 'object' && 'zoom' in (capsUnknown as Record<string, unknown>)) {
-            const zoomCaps = (capsUnknown as { zoom?: { min?: number } }).zoom;
-            const minZoom = (zoomCaps && typeof zoomCaps.min === 'number') ? zoomCaps.min : 1;
-            await (track as MediaStreamTrack).applyConstraints(
-              { advanced: [ { zoom: minZoom } ] } as unknown as MediaTrackConstraints
-            );
-          }
-        } catch (e) {
-          // Ignore if zoom capability not available
+  const startCamera = useCallback(async () => {
+    try {
+      // Prefer exact facingMode when possible
+      const constraints: MediaStreamConstraints = {
+        video: {
+          facingMode: { exact: cameraFacing } as unknown as ConstrainDOMString,
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+          aspectRatio: { ideal: 16/9 }
         }
-
-        const video = videoRef.current;
-        if (video) {
-          video.srcObject = stream;
-          video.play();
+      };
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      streamRef.current = stream;
+      const video = videoRef.current;
+      if (video) {
+        video.srcObject = stream;
+        await video.play();
+      }
+      // Try to minimize zoom if available
+      try {
+        const track = stream.getVideoTracks()[0];
+        const capsUnknown: unknown = typeof (track as { getCapabilities?: () => unknown }).getCapabilities === 'function'
+          ? (track as { getCapabilities: () => unknown }).getCapabilities()
+          : undefined;
+        if (capsUnknown && typeof capsUnknown === 'object' && 'zoom' in (capsUnknown as Record<string, unknown>)) {
+          const zoomCaps = (capsUnknown as { zoom?: { min?: number } }).zoom;
+          const minZoom = (zoomCaps && typeof zoomCaps.min === 'number') ? zoomCaps.min : 1;
+          await (track as MediaStreamTrack).applyConstraints(
+            { advanced: [ { zoom: minZoom } ] } as unknown as MediaTrackConstraints
+          );
         }
-      })
-      .catch(err => {
-        console.error('Camera access denied:', err);
-        toast({
-          title: "Camera access denied",
-          description: "Please allow camera access to capture images.",
-          variant: "destructive"
-        });
-      });
+      } catch (e) {
+        // Ignore zoom capability errors gracefully
+      }
+    } catch (err) {
+      console.error('Camera error', err);
+      toast({ title: 'Camera error', description: 'Unable to access camera. Check permissions.', variant: 'destructive' });
+    }
   }, [cameraFacing]);
 
   useEffect(() => {
-    if (!showCamera) return;
-    stopCamera();
-    startCamera();
-    return () => {
+    if (!showCamera) {
       stopCamera();
-    };
+      return;
+    }
+    startCamera();
+    return () => { stopCamera(); };
   }, [showCamera, startCamera, stopCamera]);
 
   return (
@@ -570,12 +574,13 @@ Example: Water, Sodium Lauryl Sulfate, Cocamidopropyl Betaine, Sodium Chloride, 
               <h3 className="text-xl font-semibold">Camera</h3>
               
               {/* Camera Preview Area */}
-              <div className="relative bg-gray-200 dark:bg-gray-700 rounded-xl h-64 flex items-center justify-center">
-                <video 
+              <div className="relative bg-gray-200 dark:bg-gray-700 rounded-xl h-[70vh] md:h-64 flex items-center justify-center">
+                <video
                   ref={videoRef}
                   className="w-full h-full object-contain rounded-xl bg-black"
                   autoPlay
                   playsInline
+                  muted
                 />
                 <button
                   onClick={() => setCameraFacing(prev => prev === 'user' ? 'environment' : 'user')}
@@ -590,16 +595,16 @@ Example: Water, Sodium Lauryl Sulfate, Cocamidopropyl Betaine, Sodium Chloride, 
               <div className="flex justify-center space-x-4">
                 <Button
                   onClick={() => {
-                    const video = videoRef.current as HTMLVideoElement | null;
+                    const video = videoRef.current;
                     if (!video) return;
                     const canvas = document.createElement('canvas');
                     canvas.width = video.videoWidth;
                     canvas.height = video.videoHeight;
                     const ctx = canvas.getContext('2d');
                     ctx?.drawImage(video, 0, 0);
-                    const imageData = canvas.toDataURL('image/jpeg');
+                    const data = canvas.toDataURL('image/jpeg');
                     stopCamera();
-                    handleCameraCapture(imageData);
+                    handleCameraCapture(data);
                   }}
                   className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white px-8 py-3 rounded-xl"
                 >
@@ -608,8 +613,8 @@ Example: Water, Sodium Lauryl Sulfate, Cocamidopropyl Betaine, Sodium Chloride, 
                 </Button>
                 <Button
                   onClick={() => {
-                    stopCamera();
                     setShowCamera(false);
+                    stopCamera();
                   }}
                   variant="outline"
                   className="px-8 py-3 rounded-xl"
