@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, AlertTriangle, CheckCircle, Info, Lightbulb } from 'lucide-react';
+import { ArrowLeft, AlertTriangle, CheckCircle, Info, Lightbulb, MessageSquare, BarChart3 } from 'lucide-react';
 import ChatInterface from '../components/ChatInterface';
 
 const ResultsPage: React.FC = () => {
@@ -59,6 +59,7 @@ const ResultsPage: React.FC = () => {
   const [chatHeight, setChatHeight] = useState<number | undefined>(undefined);
   const breakdownContentRef = useRef<HTMLDivElement | null>(null);
   const [breakdownMaxPx, setBreakdownMaxPx] = useState<number | undefined>(undefined);
+  const [mobileView, setMobileView] = useState<'analysis' | 'chat'>('analysis');
 
   // Compute deterministic score and risk band from insight risks
   const risks = (analysisData.insights || []).map((i: any) => (i?.risk || '').toLowerCase());
@@ -178,7 +179,7 @@ const ResultsPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-emerald-50/30 to-teal-50/40 dark:from-background dark:via-emerald-950/20 dark:to-teal-950/30">
       {/* Header */}
-      <div className="border-b border-border/40 backdrop-blur-lg bg-background/80">
+      <div className="border-b border-border/40 backdrop-blur-lg bg-background/80 relative">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <button 
@@ -202,20 +203,40 @@ const ResultsPage: React.FC = () => {
       </div>
 
       {/* Main Content */}
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-4 md:py-8">
         <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-8">
-            <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-emerald-600 to-teal-500 bg-clip-text text-transparent pb-2 leading-tight">
+          <div className="text-center mb-4 md:mb-8">
+            <h1 className="text-4xl md:text-5xl font-bold mb-2 md:mb-4 bg-gradient-to-r from-emerald-600 to-teal-500 bg-clip-text text-transparent pb-1 md:pb-2 leading-tight">
               Analysis Results
             </h1>
-            <p className="text-lg text-foreground/70">
+            <p className="text-sm md:text-lg text-foreground/70 mb-2 md:mb-0">
               AI-powered ingredient analysis based on your health profile
             </p>
           </div>
 
-          <div className="grid lg:grid-cols-2 gap-8">
+          {/* Mobile toggle below title, right aligned */}
+          <div className="md:hidden flex justify-end mb-2">
+            <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full p-1 shadow-sm">
+              <button
+                aria-label="Show analysis"
+                onClick={() => setMobileView('analysis')}
+                className={`${mobileView === 'analysis' ? 'bg-white dark:bg-gray-700 text-emerald-600' : 'text-foreground/70'} p-2 rounded-full transition-colors`}
+              >
+                <BarChart3 size={18} />
+              </button>
+              <button
+                aria-label="Show chat"
+                onClick={() => setMobileView('chat')}
+                className={`${mobileView === 'chat' ? 'bg-white dark:bg-gray-700 text-emerald-600' : 'text-foreground/70'} p-2 rounded-full transition-colors`}
+              >
+                <MessageSquare size={18} />
+              </button>
+            </div>
+          </div>
+
+          <div className="grid lg:grid-cols-2 gap-4 lg:gap-8">
             {/* Analysis Results */}
-            <div className="space-y-6">
+            <div className={`${mobileView === 'analysis' ? 'block' : 'hidden'} md:block space-y-6`}>
               {/* Overall Score */}
               <div ref={overallRef}>
                 <Card className="border-2 border-emerald-200 dark:border-emerald-800">
@@ -228,9 +249,7 @@ const ResultsPage: React.FC = () => {
                           computedRiskLevel === 'Medium' ? 'secondary' :
                           computedRiskLevel === 'High' ? 'destructive' : 'destructive'
                         }
-                        className={
-                          computedRiskLevel === 'Very High' ? 'bg-red-600 hover:bg-red-700' : ''
-                        }
+                        className={`flex items-center justify-center text-center leading-tight px-3 py-2 ${computedRiskLevel === 'Very High' ? 'bg-red-600 hover:bg-red-700' : ''}`}
                       >
                         {computedRiskLevel} Risk
                       </Badge>
@@ -316,10 +335,10 @@ const ResultsPage: React.FC = () => {
             </div>
 
             {/* Chat Interface */}
-            <div className="space-y-6">
+            <div className={`${mobileView === 'chat' ? 'block' : 'hidden'} md:block space-y-6`}>
               <ChatInterface 
                 initialAnalysis={initialAnalysis} 
-                heightPx={chatHeight}
+                heightPx={mobileView === 'chat' ? undefined : chatHeight}
                 recommendations={(analysisData as any).recommendations}
               />
             </div>

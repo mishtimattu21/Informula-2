@@ -102,7 +102,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialAnalysis, heightPx
   };
 
   return (
-    <Card className="flex flex-col border-2 border-emerald-200 dark:border-emerald-800" style={{ height: heightPx ? `${heightPx}px` : undefined }}>
+    <Card
+      className={`flex flex-col border-2 border-emerald-200 dark:border-emerald-800 ${!heightPx ? 'h-[75vh] md:h-auto' : ''}`}
+      style={{ height: heightPx ? `${heightPx}px` : undefined }}
+    >
       <CardContent className="flex flex-col h-full p-4">
         <div className="flex items-center gap-2 mb-4 pb-3 border-b">
           <MessageSquare className="w-5 h-5 text-emerald-500" />
