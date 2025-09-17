@@ -70,16 +70,16 @@ const HeroSection: React.FC = () => {
             </Button>
             
              {/* Chemistry Image - Different for Light/Dark Mode */}
-            <div className="mt-auto mb-16 md:mb-24 flex justify-center px-4">
+            <div className="mt-auto mb-12 md:mb-24 flex justify-center px-4">
               <img 
                 src="/chem1.png" 
                 alt="Chemistry Analysis - Light Mode" 
-                className="max-w-7xl w-full h-auto max-h-[40svh] object-contain dark:hidden"
+                className="max-w-7xl w-full h-auto max-h-[85svh] md:max-h-[40svh] object-contain dark:hidden"
               />
               <img 
                 src="/chem2.png" 
                 alt="Chemistry Analysis - Dark Mode" 
-                className="max-w-7xl w-full h-auto max-h-[40svh] object-contain hidden dark:block"
+                className="max-w-7xl w-full h-auto max-h-[85svh] md:max-h-[40svh] object-contain hidden dark:block"
               />
             </div>
           </div>
