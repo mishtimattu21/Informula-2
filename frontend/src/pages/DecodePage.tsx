@@ -140,6 +140,49 @@ const DecodePage: React.FC = () => {
     }
   };
 
+  const stopCamera = useCallback(() => {
+    const stream = streamRef.current;
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+  }, []);
+
+  const startCamera = useCallback(() => {
+    navigator.mediaDevices.getUserMedia({
+      video: {
+        facingMode: { ideal: cameraFacing },
+        width: { ideal: 1920 },
+        height: { ideal: 1080 }
+      }
+    })
+      .then(stream => {
+        streamRef.current = stream;
+        const video = videoRef.current;
+        if (video) {
+          video.srcObject = stream;
+          video.play();
+        }
+      })
+      .catch(err => {
+        console.error('Camera access denied:', err);
+        toast({
+          title: "Camera access denied",
+          description: "Please allow camera access to capture images.",
+          variant: "destructive"
+        });
+      });
+  }, [cameraFacing]);
+
+  useEffect(() => {
+    if (!showCamera) return;
+    stopCamera();
+    startCamera();
+    return () => {
+      stopCamera();
+    };
+  }, [showCamera, startCamera, stopCamera]);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-emerald-50/30 dark:to-emerald-950/30">
       {/* Header */}
@@ -516,27 +559,20 @@ Example: Water, Sodium Lauryl Sulfate, Cocamidopropyl Betaine, Sodium Chloride, 
               {/* Camera Preview Area */}
               <div className="relative bg-gray-200 dark:bg-gray-700 rounded-xl h-64 flex items-center justify-center">
                 <video 
-                  ref={(video) => {
-                    if (video && showCamera) {
-                      navigator.mediaDevices.getUserMedia({ video: true })
-                        .then(stream => {
-                          video.srcObject = stream;
-                          video.play();
-                        })
-                        .catch(err => {
-                          console.error('Camera access denied:', err);
-                          toast({
-                            title: "Camera access denied",
-                            description: "Please allow camera access to capture images.",
-                            variant: "destructive"
-                          });
-                        });
-                    }
-                  }}
-                  className="w-full h-full object-cover rounded-xl"
+                  ref={videoRef}
+                  className="w-full h-full object-contain rounded-xl bg-black"
                   autoPlay
                   playsInline
                 />
+                <button
+                  onClick={() => setCameraFacing(prev => prev === 'user' ? 'environment' : 'user')}
+                  className="absolute top-2 right-2 bg-white/80 dark:bg-gray-900/60 hover:bg-white text-emerald-600 rounded-full p-2 shadow"
+                  aria-label="Flip camera"
+                >
+                  <RefreshCcw className="w-5 h-5" />
+                </button>
+                {/* 1x badge for clarity */}
+                <div className="absolute bottom-2 right-2 px-2 py-1 rounded-full text-xs bg-white/70 dark:bg-gray-900/60 text-foreground">1x</div>
               </div>
 
               {/* Capture Button */}
