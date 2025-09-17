@@ -1,10 +1,11 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Upload, Camera, RefreshCcw } from 'lucide-react';
+import Webcam from 'react-webcam';
 import { useNavigate } from 'react-router-dom';
 import { analyzeImageFile, analyzeImage, analyzeText } from '@/services/api';
 import type { AnalysisResponse } from '@/services/api';
@@ -20,8 +21,7 @@ const DecodePage: React.FC = () => {
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [showCamera, setShowCamera] = useState(false);
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-  const streamRef = useRef<MediaStream | null>(null);
+  const webcamRef = useRef<Webcam | null>(null);
   const [cameraFacing, setCameraFacing] = useState<'user' | 'environment'>('environment');
   const [showImageModal, setShowImageModal] = useState(false);
   const [modalImage, setModalImage] = useState<string | null>(null);
@@ -143,59 +143,7 @@ const DecodePage: React.FC = () => {
     }
   };
 
-  const stopCamera = useCallback(() => {
-    const stream = streamRef.current;
-    if (stream) {
-      stream.getTracks().forEach(track => track.stop());
-      streamRef.current = null;
-    }
-  }, []);
-
-  const startCamera = useCallback(() => {
-    navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: cameraFacing } } })
-      .then(async stream => {
-        streamRef.current = stream;
-        // Try to reset any optical/digital zoom if supported
-        try {
-          const track = stream.getVideoTracks()[0];
-          const capsUnknown: unknown = typeof (track as { getCapabilities?: () => unknown }).getCapabilities === 'function'
-            ? (track as { getCapabilities: () => unknown }).getCapabilities()
-            : undefined;
-          if (capsUnknown && typeof capsUnknown === 'object' && 'zoom' in (capsUnknown as Record<string, unknown>)) {
-            const zoomCaps = (capsUnknown as { zoom?: { min?: number } }).zoom;
-            const minZoom = (zoomCaps && typeof zoomCaps.min === 'number') ? zoomCaps.min : 1;
-            await (track as MediaStreamTrack).applyConstraints(
-              { advanced: [ { zoom: minZoom } ] } as unknown as MediaTrackConstraints
-            );
-          }
-        } catch (e) {
-          // Ignore if zoom capability not available
-        }
-
-        const video = videoRef.current;
-        if (video) {
-          video.srcObject = stream;
-          video.play();
-        }
-      })
-      .catch(err => {
-        console.error('Camera access denied:', err);
-        toast({
-          title: "Camera access denied",
-          description: "Please allow camera access to capture images.",
-          variant: "destructive"
-        });
-      });
-  }, [cameraFacing]);
-
-  useEffect(() => {
-    if (!showCamera) return;
-    stopCamera();
-    startCamera();
-    return () => {
-      stopCamera();
-    };
-  }, [showCamera, startCamera, stopCamera]);
+  // Using react-webcam for stable cross-device camera handling
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-emerald-50/30 dark:to-emerald-950/30">
@@ -571,11 +519,12 @@ Example: Water, Sodium Lauryl Sulfate, Cocamidopropyl Betaine, Sodium Chloride, 
               
               {/* Camera Preview Area */}
               <div className="relative bg-gray-200 dark:bg-gray-700 rounded-xl h-64 flex items-center justify-center">
-                <video 
-                  ref={videoRef}
+                <Webcam
+                  ref={webcamRef}
+                  audio={false}
+                  screenshotFormat="image/jpeg"
                   className="w-full h-full object-contain rounded-xl bg-black"
-                  autoPlay
-                  playsInline
+                  videoConstraints={{ facingMode: cameraFacing }}
                 />
                 <button
                   onClick={() => setCameraFacing(prev => prev === 'user' ? 'environment' : 'user')}
@@ -590,15 +539,8 @@ Example: Water, Sodium Lauryl Sulfate, Cocamidopropyl Betaine, Sodium Chloride, 
               <div className="flex justify-center space-x-4">
                 <Button
                   onClick={() => {
-                    const video = videoRef.current as HTMLVideoElement | null;
-                    if (!video) return;
-                    const canvas = document.createElement('canvas');
-                    canvas.width = video.videoWidth;
-                    canvas.height = video.videoHeight;
-                    const ctx = canvas.getContext('2d');
-                    ctx?.drawImage(video, 0, 0);
-                    const imageData = canvas.toDataURL('image/jpeg');
-                    stopCamera();
+                    const imageData = webcamRef.current?.getScreenshot();
+                    if (!imageData) return;
                     handleCameraCapture(imageData);
                   }}
                   className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white px-8 py-3 rounded-xl"
@@ -608,7 +550,6 @@ Example: Water, Sodium Lauryl Sulfate, Cocamidopropyl Betaine, Sodium Chloride, 
                 </Button>
                 <Button
                   onClick={() => {
-                    stopCamera();
                     setShowCamera(false);
                   }}
                   variant="outline"
