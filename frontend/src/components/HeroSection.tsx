@@ -5,13 +5,18 @@ import { useNavigate } from 'react-router-dom';
 const HeroSection: React.FC = () => {
   const navigate = useNavigate();
   const educationalQuotes = [
-    "Overconsumption of salt can kill you!",
-    "Hidden chemicals in cosmetics affect hormones",
-    "Natural doesn't always mean safer",
-    "Your skin absorbs 60% of what you apply",
-    "Parabens may disrupt your endocrine system",
-    "Some fragrances contain toxic compounds"
+    "Reading labels is the first step to protecting your health",
+    "Many everyday products contain hidden toxins you’ve never heard of",
+    "Small exposures add up — what you use daily matters most",
+    "Your skin is your body’s largest organ — treat it with care",
+    "Some preservatives extend shelf life, but shorten yours",
+    "Fragrance doesn’t always mean safe — hidden chemicals may lurk",
+    "Even 'dermatologist tested' doesn’t guarantee toxin-free",
+    "Hormone disruptors can be found in soaps, shampoos, and lotions",
+    "Natural ingredients can still cause allergies and reactions",
+    "Awareness is the strongest ingredient you can add to your routine"
   ];
+  
   
   const [currentQuote, setCurrentQuote] = useState(0);
   const [isVisible, setIsVisible] = useState(true);

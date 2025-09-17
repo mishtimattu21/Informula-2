@@ -207,6 +207,13 @@ const StepsSection: React.FC = () => {
                                     <div className="absolute inset-0 border-2 border-emerald-300 rounded-lg animate-pulse opacity-50"></div>
                                   </div>
                                   <p className="text-xs text-foreground/70 font-medium mb-2">Camera Ready</p>
+                                  <p className="text-[10px] text-foreground/60 mb-3">Align the ingredient list within the frame</p>
+                                  {/* Mini preview strips */}
+                                  <div className="flex items-center justify-center gap-1 mb-2">
+                                    <div className="w-10 h-1.5 bg-emerald-300/60 rounded animate-pulse"></div>
+                                    <div className="w-8 h-1.5 bg-emerald-200/60 rounded animate-pulse delay-100"></div>
+                                    <div className="w-12 h-1.5 bg-emerald-300/60 rounded animate-pulse delay-200"></div>
+                                  </div>
                                   <div className="w-16 h-1.5 bg-emerald-300 rounded mx-auto animate-pulse"></div>
                                 </div>
                               </div>
@@ -224,6 +231,12 @@ const StepsSection: React.FC = () => {
                                     <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-bounce"></div>
                                     <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-bounce delay-100"></div>
                                     <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-bounce delay-200"></div>
+                                  </div>
+                                  {/* Stage badges */}
+                                  <div className="mt-3 flex items-center justify-center gap-2">
+                                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">OCR</span>
+                                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">Parsing</span>
+                                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">Safety map</span>
                                   </div>
                                 </div>
                               </div>
@@ -300,9 +313,7 @@ const StepsSection: React.FC = () => {
                       </div>
                     </div>
                     
-                    {/* Floating decoration elements */}
-                    <div className="absolute -top-3 -right-3 w-12 h-12 bg-gradient-to-r from-emerald-400 to-teal-400 rounded-full opacity-20 animate-pulse"></div>
-                    <div className="absolute -bottom-4 -left-4 w-8 h-8 bg-gradient-to-r from-teal-400 to-emerald-400 rounded-full opacity-30 animate-pulse delay-1000"></div>
+                    {/* Decorative elements removed for a cleaner look */}
                   </div>
                 </div>
 
