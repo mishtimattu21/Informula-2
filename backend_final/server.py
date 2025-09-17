@@ -3,14 +3,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from typing import Optional
 import base64
 
-from .supabase_client import get_user_profile
-from .prompt_formatter import format_prompt
-from .gemini_client import get_ingredient_report
+from supabase_client import get_user_profile
+from prompt_formatter import format_prompt
+from gemini_client import get_ingredient_report
 import json
 import re
 
 # For OCR, reuse existing processing pipeline but expose helpers
-from .processing_ocr import extract_text_from_bytes
+from processing_ocr import extract_text_from_bytes
 
 app = FastAPI()
 
