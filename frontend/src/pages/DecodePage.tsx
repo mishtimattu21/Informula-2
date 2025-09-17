@@ -268,10 +268,21 @@ const DecodePage: React.FC = () => {
       const stream = streamRef.current;
       if (!stream) return;
       const track = stream.getVideoTracks()[0];
-      // Try non-standard focus constraints supported by some mobile browsers
-      // @ts-expect-error pointsOfInterest and focusMode are non-standard
-      const constraints: MediaTrackConstraints = { advanced: [ { pointsOfInterest: [ { x, y } ] }, { focusMode: 'single-shot' } ] };
-      await track.applyConstraints(constraints);
+      // Try ImageCapture API first (best support for tap-to-focus on Chrome Android)
+      type ImageCaptureCtor = new (t: MediaStreamTrack) => { setOptions?: (opts: unknown) => Promise<void> };
+      const anyWindow = window as unknown as { ImageCapture?: ImageCaptureCtor };
+      if (anyWindow.ImageCapture) {
+        const ic = new anyWindow.ImageCapture(track);
+        try {
+          await (ic.setOptions?.({ pointsOfInterest: [ { x, y } ], focusMode: 'single-shot' }) ?? Promise.resolve());
+          return;
+        } catch {
+          // fall through to constraints path
+        }
+      }
+
+      // Fallback: Try non-standard track constraints
+      await (track as unknown as { applyConstraints: (c: unknown) => Promise<void> }).applyConstraints({ advanced: [ { pointsOfInterest: [ { x, y } ] }, { focusMode: 'single-shot' } ] });
     } catch {
       // Ignore if not supported
     }
