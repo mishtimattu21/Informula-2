@@ -75,7 +75,7 @@ const HeroSection: React.FC = () => {
             </Button>
             
              {/* Chemistry Image - Different for Light/Dark Mode */}
-            <div className="mt-auto mb-12 md:mb-24 flex justify-center px-0 md:px-4 relative -z-10 overflow-visible -top-6 md:top-0">
+            <div className="mt-auto mb-12 md:mb-24 flex justify-center px-0 md:px-4 relative -z-10 overflow-visible top-6 md:top-0">
               <img 
                 src="/chem1.png" 
                 alt="Chemistry Analysis - Light Mode" 
