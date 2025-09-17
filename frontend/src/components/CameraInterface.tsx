@@ -1,9 +1,7 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Camera, X, RotateCcw, Zap, RefreshCw } from 'lucide-react';
-import { toast } from '@/hooks/use-toast';
+import { Camera, X, RotateCcw, Zap, RefreshCw, Smartphone, Monitor } from 'lucide-react';
 
 interface CameraInterfaceProps {
   onCapture: (imageData: string) => void;
@@ -14,11 +12,26 @@ const CameraInterface: React.FC<CameraInterfaceProps> = ({ onCapture, onClose })
   const [isStreaming, setIsStreaming] = useState(false);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [facingMode, setFacingMode] = useState<'environment' | 'user'>('environment');
-  const [zoom, setZoom] = useState(1); // preview zoom for crop
-  const [rotation, setRotation] = useState(0); // 0, 90, 180, 270
+  const [zoom, setZoom] = useState(1);
+  const [rotation, setRotation] = useState(0);
+  const [videoDevices, setVideoDevices] = useState<MediaDeviceInfo[]>([]);
+  const [selectedDeviceId, setSelectedDeviceId] = useState<string>('');
+  const [isMobile, setIsMobile] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+
+  // Detect mobile device
+  useEffect(() => {
+    const checkMobile = () => {
+      const userAgent = navigator.userAgent.toLowerCase();
+      const mobileKeywords = ['android', 'webos', 'iphone', 'ipad', 'ipod', 'blackberry', 'iemobile', 'opera mini'];
+      return mobileKeywords.some(keyword => userAgent.includes(keyword)) || 
+             ('ontouchstart' in window) || 
+             (navigator.maxTouchPoints > 0);
+    };
+    setIsMobile(checkMobile());
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -28,82 +41,183 @@ const CameraInterface: React.FC<CameraInterfaceProps> = ({ onCapture, onClose })
     };
   }, []);
 
-  // Auto-start back camera on mobile to avoid selfie camera by default
+  // Auto-start back camera on mobile for convenience
   useEffect(() => {
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-      navigator.userAgent
-    );
     if (isMobile && !isStreaming && !capturedImage) {
-      // slight delay to allow modal render
-      const t = setTimeout(() => startCameraWithMode('environment'), 200);
-      return () => clearTimeout(t);
+      const timer = setTimeout(() => startCameraWithMode('environment'), 300);
+      return () => clearTimeout(timer);
     }
-  }, [isStreaming, capturedImage]);
+  }, [isMobile, isStreaming, capturedImage]);
 
-  const startCamera = async () => {
-    // Try robustly: first with facingMode exact, then deviceId fallback
-    const tryStart = async (constraints: MediaStreamConstraints) => {
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
-      if (videoRef.current) {
-        // iOS Safari needs inline playback
-        videoRef.current.setAttribute('playsinline', 'true');
-        videoRef.current.muted = true as any;
-        videoRef.current.srcObject = stream;
-        streamRef.current = stream;
-        setIsStreaming(true);
-        try { await videoRef.current.play(); } catch {}
-      }
-    };
-
-    const getBackDeviceId = async () => {
-      const devices = await navigator.mediaDevices.enumerateDevices();
-      const videoInputs = devices.filter(d => d.kind === 'videoinput');
-      const back = videoInputs.find(d => /back|rear|environment/i.test(d.label));
-      return back?.deviceId || videoInputs[videoInputs.length - 1]?.deviceId;
-    };
-
+  const enumerateDevices = async () => {
     try {
-      // 1) Preferred: facingMode exact (works on most Android/Chrome)
-      await tryStart({
-        video: {
-          facingMode: facingMode === 'environment' ? { exact: 'environment' } : { exact: 'user' },
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
-        }
-      });
-    } catch (e1: any) {
-      try {
-        // 2) Fallback: request a generic stream to unlock labels, then enumerate
-        const temp = await navigator.mediaDevices.getUserMedia({ video: true });
-        temp.getTracks().forEach(t => t.stop());
-        const deviceId = await getBackDeviceId();
-        await tryStart({ video: { deviceId: deviceId ? { exact: deviceId } : undefined } });
-      } catch (e2: any) {
-        const err = e2 || e1;
-        let hint = 'Unknown error';
-        const name = err?.name || '';
-        if (name === 'NotAllowedError') hint = 'Permission blocked at browser/system level.';
-        else if (name === 'NotFoundError' || name === 'OverconstrainedError') hint = 'No suitable camera found. Try switching front/back.';
-        else if (name === 'NotReadableError') hint = 'Camera is in use by another app.';
-        toast({
-          title: 'Camera error',
-          description: `${name || 'Error'}: ${err?.message || 'Please try switching camera or check permissions.'}`,
-          variant: 'destructive'
-        });
-      }
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const videoInputs = devices.filter(device => device.kind === 'videoinput');
+      setVideoDevices(videoInputs);
+      return videoInputs;
+    } catch (error) {
+      console.error('Error enumerating devices:', error);
+      return [];
     }
   };
 
-  // Explicit helper to start in a given mode (handy on mobile)
+  const startCamera = async (preferredFacingMode?: 'environment' | 'user') => {
+    const mode = preferredFacingMode || facingMode;
+    
+    const tryStartStream = async (constraints: MediaStreamConstraints) => {
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      if (videoRef.current) {
+        videoRef.current.setAttribute('playsinline', 'true');
+        videoRef.current.setAttribute('webkit-playsinline', 'true');
+        videoRef.current.muted = true;
+        videoRef.current.srcObject = stream;
+        streamRef.current = stream;
+        setIsStreaming(true);
+        
+        try {
+          await videoRef.current.play();
+        } catch (playError) {
+          console.log('Video play error (usually safe to ignore):', playError);
+        }
+      }
+      return stream;
+    };
+
+    try {
+      // Strategy 1: Try with exact facingMode (works well on mobile)
+      try {
+        await tryStartStream({
+          video: {
+            facingMode: mode === 'environment' ? { exact: 'environment' } : { exact: 'user' },
+            width: { ideal: 1920, min: 640 },
+            height: { ideal: 1080, min: 480 }
+          }
+        });
+        setFacingMode(mode);
+        return;
+      } catch (exactError) {
+        console.log('Exact facingMode failed, trying ideal:', exactError);
+      }
+
+      // Strategy 2: Try with ideal facingMode
+      try {
+        await tryStartStream({
+          video: {
+            facingMode: mode === 'environment' ? { ideal: 'environment' } : { ideal: 'user' },
+            width: { ideal: 1920, min: 640 },
+            height: { ideal: 1080, min: 480 }
+          }
+        });
+        setFacingMode(mode);
+        return;
+      } catch (idealError) {
+        console.log('Ideal facingMode failed, enumerating devices:', idealError);
+      }
+
+      // Strategy 3: Enumerate devices and select appropriate one
+      const devices = await enumerateDevices();
+      if (devices.length > 0) {
+        // For back camera, prefer devices with "back", "rear", "environment" in label
+        // For front camera, prefer devices with "front", "user", "facing" in label
+        let targetDevice;
+        
+        if (mode === 'environment') {
+          targetDevice = devices.find(d => 
+            /back|rear|environment|camera 0/i.test(d.label)
+          ) || devices[devices.length - 1]; // Last device is often back camera
+        } else {
+          targetDevice = devices.find(d => 
+            /front|user|facing|selfie|camera 1/i.test(d.label)
+          ) || devices[0]; // First device is often front camera
+        }
+
+        if (targetDevice) {
+          await tryStartStream({
+            video: {
+              deviceId: { exact: targetDevice.deviceId },
+              width: { ideal: 1920, min: 640 },
+              height: { ideal: 1080, min: 480 }
+            }
+          });
+          setSelectedDeviceId(targetDevice.deviceId);
+          setFacingMode(mode);
+          return;
+        }
+      }
+
+      // Strategy 4: Fallback to any available camera
+      await tryStartStream({
+        video: {
+          width: { ideal: 1920, min: 640 },
+          height: { ideal: 1080, min: 480 }
+        }
+      });
+      
+    } catch (error: any) {
+      console.error('Camera error:', error);
+      let errorMessage = 'Unable to access camera';
+      
+      if (error.name === 'NotAllowedError') {
+        errorMessage = 'Camera permission denied. Please allow camera access and try again.';
+      } else if (error.name === 'NotFoundError') {
+        errorMessage = 'No camera found. Please ensure a camera is connected.';
+      } else if (error.name === 'NotReadableError') {
+        errorMessage = 'Camera is being used by another application.';
+      } else if (error.name === 'OverconstrainedError') {
+        errorMessage = 'Camera constraints not supported. Trying different settings...';
+      }
+      
+      // Show error to user (you might want to implement a proper toast/notification system)
+      alert(errorMessage);
+    }
+  };
+
   const startCameraWithMode = async (mode: 'environment' | 'user') => {
-    setFacingMode(mode);
-    // if stream running, stop first
+    // Stop current stream if running
     if (streamRef.current) {
-      streamRef.current.getTracks().forEach(t => t.stop());
+      streamRef.current.getTracks().forEach(track => track.stop());
       streamRef.current = null;
     }
     setIsStreaming(false);
-    await startCamera();
+    
+    // Start with new mode
+    await startCamera(mode);
+  };
+
+  const startCameraWithDevice = async (deviceId: string) => {
+    try {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+        streamRef.current = null;
+      }
+      
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          deviceId: { exact: deviceId },
+          width: { ideal: 1920, min: 640 },
+          height: { ideal: 1080, min: 480 }
+        }
+      });
+      
+      if (videoRef.current) {
+        videoRef.current.setAttribute('playsinline', 'true');
+        videoRef.current.setAttribute('webkit-playsinline', 'true');
+        videoRef.current.muted = true;
+        videoRef.current.srcObject = stream;
+        streamRef.current = stream;
+        setIsStreaming(true);
+        setSelectedDeviceId(deviceId);
+        
+        try {
+          await videoRef.current.play();
+        } catch (playError) {
+          console.log('Video play error (usually safe to ignore):', playError);
+        }
+      }
+    } catch (error: any) {
+      console.error('Device switch error:', error);
+      alert(`Failed to switch camera: ${error.message || 'Unknown error'}`);
+    }
   };
 
   const captureImage = () => {
@@ -112,13 +226,27 @@ const CameraInterface: React.FC<CameraInterfaceProps> = ({ onCapture, onClose })
       const video = videoRef.current;
       const context = canvas.getContext('2d');
       
+      // Set canvas size to match video
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
       
-      if (context) {
-        context.drawImage(video, 0, 0);
-        const imageData = canvas.toDataURL('image/jpeg', 0.8);
+      if (context && video.videoWidth > 0 && video.videoHeight > 0) {
+        // Clear canvas
+        context.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // Draw video frame to canvas
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        
+        // Convert to base64 with good quality
+        const imageData = canvas.toDataURL('image/jpeg', 0.85);
         setCapturedImage(imageData);
+        
+        // Stop the video stream after capture
+        if (streamRef.current) {
+          streamRef.current.getTracks().forEach(track => track.stop());
+          streamRef.current = null;
+        }
+        setIsStreaming(false);
       }
     }
   };
@@ -127,6 +255,8 @@ const CameraInterface: React.FC<CameraInterfaceProps> = ({ onCapture, onClose })
     setCapturedImage(null);
     setZoom(1);
     setRotation(0);
+    // Restart camera with the last used mode
+    startCameraWithMode(facingMode);
   };
 
   const usePhoto = () => {
@@ -146,16 +276,8 @@ const CameraInterface: React.FC<CameraInterfaceProps> = ({ onCapture, onClose })
   };
 
   const switchCamera = async () => {
-    // toggle between back and front
-    const next = facingMode === 'environment' ? 'user' : 'environment';
-    setFacingMode(next);
-    // stop then restart
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(t => t.stop());
-      streamRef.current = null;
-    }
-    setIsStreaming(false);
-    await startCamera();
+    const nextMode = facingMode === 'environment' ? 'user' : 'environment';
+    await startCameraWithMode(nextMode);
   };
 
   const rotatePreview = () => {
@@ -164,164 +286,292 @@ const CameraInterface: React.FC<CameraInterfaceProps> = ({ onCapture, onClose })
 
   const cropAndUse = async () => {
     if (!capturedImage || !canvasRef.current) return;
+    
     const img = new Image();
     img.src = capturedImage;
-    await new Promise((res) => { img.onload = () => res(null); });
+    
+    await new Promise((resolve) => {
+      img.onload = () => resolve(null);
+    });
 
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Output size: keep 1280x720-like aspect
-    const outW = 1280;
-    const outH = 720;
-    canvas.width = outW;
-    canvas.height = outH;
+    // Set output dimensions
+    const outputWidth = 1280;
+    const outputHeight = 720;
+    canvas.width = outputWidth;
+    canvas.height = outputHeight;
 
+    // Clear canvas
+    ctx.clearRect(0, 0, outputWidth, outputHeight);
+    
+    // Apply transformations
     ctx.save();
-    // apply rotation around center
-    ctx.translate(outW / 2, outH / 2);
+    ctx.translate(outputWidth / 2, outputHeight / 2);
     ctx.rotate((rotation * Math.PI) / 180);
-    ctx.translate(-outW / 2, -outH / 2);
+    ctx.translate(-outputWidth / 2, -outputHeight / 2);
 
-    // compute source rect (center crop with zoom)
-    const srcW = img.width / zoom;
-    const srcH = img.height / zoom;
-    const srcX = (img.width - srcW) / 2;
-    const srcY = (img.height - srcH) / 2;
+    // Calculate source rectangle with zoom
+    const sourceWidth = img.width / zoom;
+    const sourceHeight = img.height / zoom;
+    const sourceX = (img.width - sourceWidth) / 2;
+    const sourceY = (img.height - sourceHeight) / 2;
 
-    ctx.drawImage(img, srcX, srcY, srcW, srcH, 0, 0, outW, outH);
+    // Draw the cropped and transformed image
+    ctx.drawImage(
+      img,
+      sourceX, sourceY, sourceWidth, sourceHeight,
+      0, 0, outputWidth, outputHeight
+    );
+    
     ctx.restore();
 
-    const result = canvas.toDataURL('image/jpeg', 0.9);
-    onCapture(result);
+    const processedImage = canvas.toDataURL('image/jpeg', 0.9);
+    onCapture(processedImage);
     onClose();
   };
 
   return (
-    <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4">
-      <Card className="w-full max-w-4xl bg-background border-2 border-emerald-500">
-        <CardContent className="p-6">
+    <div className="fixed inset-0 bg-black/95 z-50 flex items-center justify-center p-2 sm:p-4">
+      <Card className="w-full max-w-4xl bg-background border-2 border-emerald-500 max-h-[95vh] overflow-auto">
+        <CardContent className="p-4 sm:p-6">
+          {/* Header */}
           <div className="flex justify-between items-center mb-4">
-            <h3 className="text-xl font-semibold">Scan Ingredient Label</h3>
+            <h3 className="text-lg sm:text-xl font-semibold flex items-center gap-2">
+              <Camera size={24} />
+              Scan Ingredient Label
+              {isMobile && <Smartphone size={16} className="text-emerald-500" />}
+            </h3>
             <Button onClick={stopCamera} variant="ghost" size="sm">
               <X size={20} />
             </Button>
           </div>
 
+          {/* Camera View */}
           <div className="relative aspect-video bg-gray-900 rounded-lg overflow-hidden mb-4">
+            {/* Initial state - camera selection */}
             {!isStreaming && !capturedImage && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center text-white">
+              <div className="absolute inset-0 flex flex-col items-center justify-center text-white p-4">
                 <Camera size={64} className="mb-4 opacity-50" />
-                <p className="text-lg mb-4">Ready to scan ingredient labels</p>
-                <div className="flex gap-3">
-                  <Button onClick={() => startCameraWithMode('environment')} className="bg-emerald-500 hover:bg-emerald-600">
-                    <Camera className="mr-2" size={16} />
-                    Back Camera
+                <p className="text-base sm:text-lg mb-6 text-center">
+                  {isMobile ? "Choose your camera to scan ingredient labels" : "Ready to scan ingredient labels"}
+                </p>
+                
+                {/* Camera selection buttons */}
+                <div className="flex flex-col sm:flex-row gap-3 w-full max-w-md">
+                  <Button 
+                    onClick={() => startCameraWithMode('environment')} 
+                    className="bg-emerald-500 hover:bg-emerald-600 flex items-center justify-center gap-2 py-3"
+                  >
+                    <Camera size={18} />
+                    {isMobile ? "Back Camera (Recommended)" : "Back Camera"}
                   </Button>
-                  <Button onClick={() => startCameraWithMode('user')} variant="outline" className="bg-white/10 border-white/30 text-white">
-                    <Camera className="mr-2" size={16} />
-                    Front
+                  <Button 
+                    onClick={() => startCameraWithMode('user')} 
+                    variant="outline" 
+                    className="bg-white/10 border-white/30 text-white hover:bg-white/20 flex items-center justify-center gap-2 py-3"
+                  >
+                    <Smartphone size={18} />
+                    Front Camera
                   </Button>
                 </div>
+                
+                {isMobile && (
+                  <p className="text-xs text-gray-300 mt-3 text-center">
+                    💡 Back camera is recommended for better ingredient label scanning
+                  </p>
+                )}
               </div>
             )}
 
+            {/* Streaming state */}
             {isStreaming && !capturedImage && (
               <>
                 <video
                   ref={videoRef}
                   autoPlay
                   playsInline
+                  muted
                   className="w-full h-full object-cover"
                 />
+                
                 {/* Scanning overlay */}
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="border-2 border-emerald-500 w-80 h-48 rounded-lg relative">
-                    <div className="absolute top-0 left-0 w-8 h-8 border-l-4 border-t-4 border-emerald-500"></div>
-                    <div className="absolute top-0 right-0 w-8 h-8 border-r-4 border-t-4 border-emerald-500"></div>
-                    <div className="absolute bottom-0 left-0 w-8 h-8 border-l-4 border-b-4 border-emerald-500"></div>
-                    <div className="absolute bottom-0 right-0 w-8 h-8 border-r-4 border-b-4 border-emerald-500"></div>
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <div className="border-2 border-emerald-500 w-72 sm:w-80 h-40 sm:h-48 rounded-lg relative bg-emerald-500/5">
+                    {/* Corner markers */}
+                    <div className="absolute top-0 left-0 w-6 h-6 sm:w-8 sm:h-8 border-l-4 border-t-4 border-emerald-400"></div>
+                    <div className="absolute top-0 right-0 w-6 h-6 sm:w-8 sm:h-8 border-r-4 border-t-4 border-emerald-400"></div>
+                    <div className="absolute bottom-0 left-0 w-6 h-6 sm:w-8 sm:h-8 border-l-4 border-b-4 border-emerald-400"></div>
+                    <div className="absolute bottom-0 right-0 w-6 h-6 sm:w-8 sm:h-8 border-r-4 border-b-4 border-emerald-400"></div>
+                    
+                    {/* Center text */}
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <span className="text-emerald-400 text-xs sm:text-sm font-medium bg-black/50 px-2 py-1 rounded">
+                        Ingredient List
+                      </span>
+                    </div>
                   </div>
                 </div>
+
+                {/* Top controls */}
                 <div className="absolute top-3 left-3 flex items-center gap-2">
-                  <Button onClick={() => startCameraWithMode('environment')} size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white">Back</Button>
-                  <Button onClick={() => startCameraWithMode('user')} size="sm" variant="outline" className="bg-white/20 text-white border-white/40">Front</Button>
+                  <Button 
+                    onClick={() => startCameraWithMode('environment')} 
+                    size="sm" 
+                    className={`text-xs ${facingMode === 'environment' ? 'bg-emerald-600' : 'bg-emerald-500'} hover:bg-emerald-700 text-white`}
+                  >
+                    Back
+                  </Button>
+                  <Button 
+                    onClick={() => startCameraWithMode('user')} 
+                    size="sm" 
+                    variant="outline"
+                    className={`text-xs ${facingMode === 'user' ? 'bg-white/30' : 'bg-white/20'} text-white border-white/40 hover:bg-white/30`}
+                  >
+                    Front
+                  </Button>
                 </div>
-                <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex items-center gap-2">
-                  <p className="text-white text-sm bg-black/50 px-3 py-1 rounded-full">
+
+                {/* Device selector (if multiple cameras available) */}
+                {videoDevices.length > 2 && (
+                  <div className="absolute top-3 right-3">
+                    <select
+                      value={selectedDeviceId}
+                      onChange={(e) => startCameraWithDevice(e.target.value)}
+                      className="text-xs bg-black/60 text-white border border-white/40 rounded-md px-2 py-1 backdrop-blur-sm"
+                    >
+                      <option value="">Select Camera</option>
+                      {videoDevices.map((device, index) => (
+                        <option key={device.deviceId} value={device.deviceId}>
+                          {device.label || `Camera ${index + 1}`}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {/* Bottom instruction */}
+                <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex flex-col sm:flex-row items-center gap-2">
+                  <p className="text-white text-xs sm:text-sm bg-black/60 px-3 py-1 rounded-full backdrop-blur-sm text-center">
                     Align ingredient list within the frame
                   </p>
-                  <Button onClick={switchCamera} variant="secondary" size="sm" className="bg-white/20 text-white hover:bg-white/30">
-                    <RefreshCw className="mr-2" size={14} />
+                  <Button 
+                    onClick={switchCamera} 
+                    variant="secondary" 
+                    size="sm" 
+                    className="bg-white/20 text-white hover:bg-white/30 text-xs"
+                  >
+                    <RefreshCw size={14} className="mr-1" />
                     Switch
                   </Button>
                 </div>
               </>
             )}
 
+            {/* Captured image preview */}
             {capturedImage && (
               <>
                 <img
                   src={capturedImage}
-                  alt="Captured"
-                  className="w-full h-full object-contain"
-                  style={{ transform: `scale(${zoom}) rotate(${rotation}deg)`, transition: 'transform 0.2s' }}
+                  alt="Captured ingredient label"
+                  className="w-full h-full object-contain transition-transform duration-200"
+                  style={{ 
+                    transform: `scale(${zoom}) rotate(${rotation}deg)`,
+                    transformOrigin: 'center center'
+                  }}
                 />
-                <div className="absolute top-3 right-3 bg-black/40 text-white text-xs rounded-md px-2 py-1">Preview</div>
+                <div className="absolute top-3 right-3 bg-black/60 text-white text-xs rounded-md px-2 py-1 backdrop-blur-sm">
+                  Preview • Zoom: {zoom.toFixed(1)}x • Rotation: {rotation}°
+                </div>
               </>
             )}
           </div>
 
-          <div className="flex justify-center flex-wrap gap-3">
+          {/* Control buttons */}
+          <div className="flex justify-center flex-wrap gap-2 sm:gap-3">
             {isStreaming && !capturedImage && (
               <>
+                {/* Camera mode buttons */}
                 <Button 
                   onClick={() => startCameraWithMode('environment')}
-                  variant="outline"
-                  className="px-5"
+                  variant={facingMode === 'environment' ? "default" : "outline"}
+                  className={`px-4 text-sm ${facingMode === 'environment' ? 'bg-emerald-500 hover:bg-emerald-600' : ''}`}
                 >
+                  <Monitor className="mr-2" size={16} />
                   Back Camera
                 </Button>
                 <Button 
                   onClick={() => startCameraWithMode('user')}
-                  variant="outline"
-                  className="px-5"
+                  variant={facingMode === 'user' ? "default" : "outline"}
+                  className={`px-4 text-sm ${facingMode === 'user' ? 'bg-emerald-500 hover:bg-emerald-600' : ''}`}
                 >
+                  <Smartphone className="mr-2" size={16} />
                   Front Camera
                 </Button>
+                
+                {/* Capture button */}
                 <Button 
                   onClick={captureImage}
-                  className="bg-emerald-500 hover:bg-emerald-600 px-8 py-3 text-lg"
+                  className="bg-emerald-500 hover:bg-emerald-600 px-6 sm:px-8 py-3 text-base sm:text-lg font-semibold"
                 >
                   <Zap className="mr-2" size={20} />
-                  Capture
+                  Capture Label
                 </Button>
               </>
             )}
 
             {capturedImage && (
               <>
-                <Button onClick={retakePhoto} variant="outline" className="px-6 py-3">
+                {/* Retake button */}
+                <Button 
+                  onClick={retakePhoto} 
+                  variant="outline" 
+                  className="px-4 sm:px-6 py-2 sm:py-3"
+                >
                   <RotateCcw className="mr-2" size={16} />
                   Retake
                 </Button>
-                <div className="flex items-center gap-3">
-                  <label className="text-sm">Zoom</label>
-                  <input type="range" min={1} max={2} step={0.05} value={zoom} onChange={(e)=>setZoom(parseFloat(e.target.value))} />
+                
+                {/* Zoom control */}
+                <div className="flex items-center gap-2 px-3 py-2 border rounded-md bg-background">
+                  <label className="text-sm font-medium">Zoom:</label>
+                  <input 
+                    type="range" 
+                    min={0.5} 
+                    max={3} 
+                    step={0.1} 
+                    value={zoom} 
+                    onChange={(e) => setZoom(parseFloat(e.target.value))}
+                    className="w-20 sm:w-24"
+                  />
+                  <span className="text-xs text-gray-600 w-8">{zoom.toFixed(1)}x</span>
                 </div>
-                <Button onClick={rotatePreview} variant="secondary" className="px-6 py-3">
+                
+                {/* Rotate button */}
+                <Button 
+                  onClick={rotatePreview} 
+                  variant="secondary" 
+                  className="px-4 sm:px-6 py-2 sm:py-3"
+                >
                   <RotateCcw className="mr-2" size={16} />
-                  Rotate 90°
+                  Rotate
                 </Button>
-                <Button onClick={cropAndUse} className="bg-emerald-500 hover:bg-emerald-600 px-6 py-3">
+                
+                {/* Use photo button */}
+                <Button 
+                  onClick={cropAndUse} 
+                  className="bg-emerald-500 hover:bg-emerald-600 px-4 sm:px-6 py-2 sm:py-3"
+                >
                   <Camera className="mr-2" size={16} />
-                  Apply Crop & Use
+                  Use Photo
                 </Button>
               </>
             )}
           </div>
 
+          {/* Hidden canvas for image processing */}
           <canvas ref={canvasRef} className="hidden" />
         </CardContent>
       </Card>
