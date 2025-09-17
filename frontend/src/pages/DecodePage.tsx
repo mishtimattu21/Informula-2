@@ -152,15 +152,26 @@ const DecodePage: React.FC = () => {
   }, []);
 
   const startCamera = useCallback(() => {
-    navigator.mediaDevices.getUserMedia({
-      video: {
-        facingMode: { ideal: cameraFacing },
-        width: { ideal: 1920 },
-        height: { ideal: 1080 }
-      }
-    })
-      .then(stream => {
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: cameraFacing } } })
+      .then(async stream => {
         streamRef.current = stream;
+        // Try to reset any optical/digital zoom if supported
+        try {
+          const track = stream.getVideoTracks()[0];
+          const capsUnknown: unknown = typeof (track as { getCapabilities?: () => unknown }).getCapabilities === 'function'
+            ? (track as { getCapabilities: () => unknown }).getCapabilities()
+            : undefined;
+          if (capsUnknown && typeof capsUnknown === 'object' && 'zoom' in (capsUnknown as Record<string, unknown>)) {
+            const zoomCaps = (capsUnknown as { zoom?: { min?: number } }).zoom;
+            const minZoom = (zoomCaps && typeof zoomCaps.min === 'number') ? zoomCaps.min : 1;
+            await (track as MediaStreamTrack).applyConstraints(
+              { advanced: [ { zoom: minZoom } ] } as unknown as MediaTrackConstraints
+            );
+          }
+        } catch (e) {
+          // Ignore if zoom capability not available
+        }
+
         const video = videoRef.current;
         if (video) {
           video.srcObject = stream;
@@ -573,8 +584,6 @@ Example: Water, Sodium Lauryl Sulfate, Cocamidopropyl Betaine, Sodium Chloride, 
                 >
                   <RefreshCcw className="w-5 h-5" />
                 </button>
-                {/* 1x badge for clarity */}
-                <div className="absolute bottom-2 right-2 px-2 py-1 rounded-full text-xs bg-white/70 dark:bg-gray-900/60 text-foreground">1x</div>
               </div>
 
               {/* Capture Button */}
