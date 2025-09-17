@@ -36,19 +36,19 @@ const Footer: React.FC = () => {
             </ul>
           </div>
 
-          {/* Newsletter Subscription */}
+          {/* Callout instead of Newsletter */}
           <div>
             <h4 className="text-lg font-semibold mb-4 text-gray-200">Stay Updated</h4>
-            <p className="text-gray-400 mb-4">Subscribe to our newsletter for the latest updates and research.</p>
-            <div className="flex">
-              <Input 
-                type="email" 
-                placeholder="Enter your email" 
-                className="bg-gray-800 border-gray-700 rounded-r-none focus:ring-emerald-500 text-white placeholder-gray-500"
-              />
-              <Button className="bg-emerald-500 hover:bg-emerald-600 rounded-l-none">
-                Subscribe
+            <p className="text-gray-400 mb-4">
+              We’re building Informula in the open — follow our socials for release notes and research highlights.
+            </p>
+            <div className="flex space-x-3">
+              <Button onClick={handleScrollToTop} variant="outline" className="border-emerald-500 text-emerald-400 hover:bg-emerald-500/10">
+                Back to top
               </Button>
+              <a href="#features" className="inline-flex">
+                <Button className="bg-emerald-500 hover:bg-emerald-600">See what’s new</Button>
+              </a>
             </div>
           </div>
           
