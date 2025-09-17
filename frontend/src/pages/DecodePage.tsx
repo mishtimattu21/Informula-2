@@ -253,55 +253,6 @@ const DecodePage: React.FC = () => {
     }
   }, [cameraFacing]);
 
-  const sleep = (ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms));
-
-  const attemptAutofocus = useCallback(async (track: MediaStreamTrack, x: number, y: number) => {
-    // 1) Try ImageCapture.setOptions
-    try {
-      type ImageCaptureCtor = new (t: MediaStreamTrack) => { setOptions?: (opts: unknown) => Promise<void> };
-      const anyWindow = window as unknown as { ImageCapture?: ImageCaptureCtor };
-      if (anyWindow.ImageCapture) {
-        const ic = new anyWindow.ImageCapture(track);
-        if (ic.setOptions) {
-          await ic.setOptions({ pointsOfInterest: [ { x, y } ], focusMode: 'single-shot' });
-          return true;
-        }
-      }
-    } catch (e) {
-      // Ignore and try next strategy
-    }
-
-    // 2) Try non-standard constraints with pointsOfInterest + single-shot
-    try {
-      await (track as unknown as { applyConstraints: (c: unknown) => Promise<void> }).applyConstraints({ advanced: [ { pointsOfInterest: [ { x, y } ] }, { focusMode: 'single-shot' } ] });
-      return true;
-    } catch (e) {
-      // Ignore and try next strategy
-    }
-
-    // 3) Try toggling focus modes to kick autofocus (Android/Samsung workarounds)
-    try {
-      await (track as unknown as { applyConstraints: (c: unknown) => Promise<void> }).applyConstraints({ advanced: [ { focusMode: 'continuous' } ] });
-      await sleep(120);
-      await (track as unknown as { applyConstraints: (c: unknown) => Promise<void> }).applyConstraints({ advanced: [ { focusMode: 'single-shot' } ] });
-      return true;
-    } catch (e) {
-      // Ignore and try next strategy
-    }
-
-    // 4) As a last resort, restart the stream which often triggers device AF
-    try {
-      stopCamera();
-      await sleep(150);
-      await startCamera();
-      return true;
-    } catch (e) {
-      // Give up; focusing not supported
-    }
-
-    return false;
-  }, [cameraFacing, startCamera, stopCamera]);
-
   const handleTapToFocus = useCallback(async (e: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>) => {
     if (!isMobile) return; // Only attempt focus on phones
     const container = e.currentTarget as HTMLElement;
@@ -317,11 +268,25 @@ const DecodePage: React.FC = () => {
       const stream = streamRef.current;
       if (!stream) return;
       const track = stream.getVideoTracks()[0];
-      await attemptAutofocus(track, x, y);
+      // Try ImageCapture API first (best support for tap-to-focus on Chrome Android)
+      type ImageCaptureCtor = new (t: MediaStreamTrack) => { setOptions?: (opts: unknown) => Promise<void> };
+      const anyWindow = window as unknown as { ImageCapture?: ImageCaptureCtor };
+      if (anyWindow.ImageCapture) {
+        const ic = new anyWindow.ImageCapture(track);
+        try {
+          await (ic.setOptions?.({ pointsOfInterest: [ { x, y } ], focusMode: 'single-shot' }) ?? Promise.resolve());
+          return;
+        } catch {
+          // fall through to constraints path
+        }
+      }
+
+      // Fallback: Try non-standard track constraints
+      await (track as unknown as { applyConstraints: (c: unknown) => Promise<void> }).applyConstraints({ advanced: [ { pointsOfInterest: [ { x, y } ] }, { focusMode: 'single-shot' } ] });
     } catch {
       // Ignore if not supported
     }
-  }, [isMobile, attemptAutofocus]);
+  }, [isMobile]);
 
   useEffect(() => {
     if (!showCamera) {
