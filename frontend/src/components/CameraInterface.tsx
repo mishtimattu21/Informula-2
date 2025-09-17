@@ -28,27 +28,69 @@ const CameraInterface: React.FC<CameraInterfaceProps> = ({ onCapture, onClose })
     };
   }, []);
 
+  // Auto-start back camera on mobile to avoid selfie camera by default
+  useEffect(() => {
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+      navigator.userAgent
+    );
+    if (isMobile && !isStreaming && !capturedImage) {
+      // slight delay to allow modal render
+      const t = setTimeout(() => startCameraWithMode('environment'), 200);
+      return () => clearTimeout(t);
+    }
+  }, [isStreaming, capturedImage]);
+
   const startCamera = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { 
-          facingMode,
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
-        } 
-      });
-      
+    // Try robustly: first with facingMode exact, then deviceId fallback
+    const tryStart = async (constraints: MediaStreamConstraints) => {
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
       if (videoRef.current) {
+        // iOS Safari needs inline playback
+        videoRef.current.setAttribute('playsinline', 'true');
+        videoRef.current.muted = true as any;
         videoRef.current.srcObject = stream;
         streamRef.current = stream;
         setIsStreaming(true);
+        try { await videoRef.current.play(); } catch {}
       }
-    } catch (error) {
-      toast({
-        title: "Camera access denied",
-        description: "Please allow camera access to scan ingredients.",
-        variant: "destructive"
+    };
+
+    const getBackDeviceId = async () => {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const videoInputs = devices.filter(d => d.kind === 'videoinput');
+      const back = videoInputs.find(d => /back|rear|environment/i.test(d.label));
+      return back?.deviceId || videoInputs[videoInputs.length - 1]?.deviceId;
+    };
+
+    try {
+      // 1) Preferred: facingMode exact (works on most Android/Chrome)
+      await tryStart({
+        video: {
+          facingMode: facingMode === 'environment' ? { exact: 'environment' } : { exact: 'user' },
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        }
       });
+    } catch (e1: any) {
+      try {
+        // 2) Fallback: request a generic stream to unlock labels, then enumerate
+        const temp = await navigator.mediaDevices.getUserMedia({ video: true });
+        temp.getTracks().forEach(t => t.stop());
+        const deviceId = await getBackDeviceId();
+        await tryStart({ video: { deviceId: deviceId ? { exact: deviceId } : undefined } });
+      } catch (e2: any) {
+        const err = e2 || e1;
+        let hint = 'Unknown error';
+        const name = err?.name || '';
+        if (name === 'NotAllowedError') hint = 'Permission blocked at browser/system level.';
+        else if (name === 'NotFoundError' || name === 'OverconstrainedError') hint = 'No suitable camera found. Try switching front/back.';
+        else if (name === 'NotReadableError') hint = 'Camera is in use by another app.';
+        toast({
+          title: 'Camera error',
+          description: `${name || 'Error'}: ${err?.message || 'Please try switching camera or check permissions.'}`,
+          variant: 'destructive'
+        });
+      }
     }
   };
 
@@ -202,6 +244,10 @@ const CameraInterface: React.FC<CameraInterfaceProps> = ({ onCapture, onClose })
                     <div className="absolute bottom-0 right-0 w-8 h-8 border-r-4 border-b-4 border-emerald-500"></div>
                   </div>
                 </div>
+                <div className="absolute top-3 left-3 flex items-center gap-2">
+                  <Button onClick={() => startCameraWithMode('environment')} size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white">Back</Button>
+                  <Button onClick={() => startCameraWithMode('user')} size="sm" variant="outline" className="bg-white/20 text-white border-white/40">Front</Button>
+                </div>
                 <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex items-center gap-2">
                   <p className="text-white text-sm bg-black/50 px-3 py-1 rounded-full">
                     Align ingredient list within the frame
@@ -227,15 +273,31 @@ const CameraInterface: React.FC<CameraInterfaceProps> = ({ onCapture, onClose })
             )}
           </div>
 
-          <div className="flex justify-center gap-4">
+          <div className="flex justify-center flex-wrap gap-3">
             {isStreaming && !capturedImage && (
-              <Button 
-                onClick={captureImage}
-                className="bg-emerald-500 hover:bg-emerald-600 px-8 py-3 text-lg"
-              >
-                <Zap className="mr-2" size={20} />
-                Capture
-              </Button>
+              <>
+                <Button 
+                  onClick={() => startCameraWithMode('environment')}
+                  variant="outline"
+                  className="px-5"
+                >
+                  Back Camera
+                </Button>
+                <Button 
+                  onClick={() => startCameraWithMode('user')}
+                  variant="outline"
+                  className="px-5"
+                >
+                  Front Camera
+                </Button>
+                <Button 
+                  onClick={captureImage}
+                  className="bg-emerald-500 hover:bg-emerald-600 px-8 py-3 text-lg"
+                >
+                  <Zap className="mr-2" size={20} />
+                  Capture
+                </Button>
+              </>
             )}
 
             {capturedImage && (
