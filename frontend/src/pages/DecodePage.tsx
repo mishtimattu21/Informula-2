@@ -152,7 +152,13 @@ const DecodePage: React.FC = () => {
   }, []);
 
   const startCamera = useCallback(() => {
-    navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: cameraFacing } } })
+    navigator.mediaDevices.getUserMedia({
+      video: {
+        facingMode: { ideal: cameraFacing },
+        width: { ideal: 1920 },
+        height: { ideal: 1080 }
+      }
+    })
       .then(stream => {
         streamRef.current = stream;
         const video = videoRef.current;
@@ -556,7 +562,7 @@ Example: Water, Sodium Lauryl Sulfate, Cocamidopropyl Betaine, Sodium Chloride, 
               <div className="relative bg-gray-200 dark:bg-gray-700 rounded-xl h-64 flex items-center justify-center">
                 <video 
                   ref={videoRef}
-                  className="w-full h-full object-cover rounded-xl"
+                  className="w-full h-full object-contain rounded-xl bg-black"
                   autoPlay
                   playsInline
                 />
@@ -567,6 +573,8 @@ Example: Water, Sodium Lauryl Sulfate, Cocamidopropyl Betaine, Sodium Chloride, 
                 >
                   <RefreshCcw className="w-5 h-5" />
                 </button>
+                {/* 1x badge for clarity */}
+                <div className="absolute bottom-2 right-2 px-2 py-1 rounded-full text-xs bg-white/70 dark:bg-gray-900/60 text-foreground">1x</div>
               </div>
 
               {/* Capture Button */}
