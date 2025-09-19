@@ -8,7 +8,13 @@ const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
 const Main = () => (
   <React.StrictMode>
-    <ClerkProvider publishableKey={clerkPubKey}>
+    <ClerkProvider 
+      publishableKey={clerkPubKey}
+      afterSignInUrl="/post-auth"
+      afterSignUpUrl="/post-auth"
+      signInUrl="/auth"
+      signUpUrl="/auth"
+    >
       <App />
     </ClerkProvider>
   </React.StrictMode>
