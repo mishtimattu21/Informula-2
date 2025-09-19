@@ -14,18 +14,19 @@ const SSOCallback: React.FC = () => {
 
       try {
         // Handle the OAuth callback
-        await handleRedirectCallback();
+        const result = await handleRedirectCallback();
+        console.log('OAuth callback result:', result);
+        console.log('Authentication state after callback:', { isSignedIn, isLoaded });
         
-        // Use a small delay to ensure auth state is updated
-        setTimeout(() => {
-          if (isSignedIn) {
-            // User is signed in, redirect to landing page
-            navigate('/', { replace: true });
-          } else {
-            // User is not signed in, redirect to landing page (auth modal will show)
-            navigate('/', { replace: true });
-          }
-        }, 100);
+        if (result?.status === 'complete') {
+          // Authentication successful, redirect to landing page
+          console.log('Authentication complete, redirecting to landing page');
+          navigate('/', { replace: true });
+        } else {
+          // Authentication failed or incomplete, redirect to landing page
+          console.log('Authentication incomplete, redirecting to landing page');
+          navigate('/', { replace: true });
+        }
       } catch (error) {
         console.error('OAuth callback error:', error);
         navigate('/', { replace: true });
@@ -33,7 +34,7 @@ const SSOCallback: React.FC = () => {
     };
 
     handleCallback();
-  }, [isLoaded, isSignedIn, navigate, handleRedirectCallback]);
+  }, [isLoaded, navigate, handleRedirectCallback]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-emerald-50/30 to-teal-50/40 dark:from-background dark:via-emerald-950/20 dark:to-teal-950/30 flex items-center justify-center p-4">

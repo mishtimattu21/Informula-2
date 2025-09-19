@@ -62,11 +62,17 @@ const MyDataPage: React.FC = () => {
       }
       
       if (!data) {
-        // No profile exists, redirect to onboarding
-        setError('No profile found. Please complete your profile setup first.');
-        setTimeout(() => {
-          window.location.href = '/onboarding';
-        }, 2000);
+        // No profile exists, create a default one for editing
+        setProfile({
+          id: user.id,
+          age: null,
+          gender: '',
+          past_medication: [],
+          allergies: [],
+          avoid_list: [],
+          diet_type: ''
+        });
+        setError('No profile found. Please fill out your information below.');
         setLoading(false);
         return;
       } else {
@@ -110,6 +116,10 @@ const MyDataPage: React.FC = () => {
         toast({ title: 'Save failed', description: error.message, variant: 'destructive' });
       } else {
         setProfile(toSave);
+        // Mark onboarding as completed for this user
+        if (user) {
+          localStorage.setItem(`hasCompletedOnboarding_${user.id}`, 'true');
+        }
         setSuccess('Profile saved successfully!');
         toast({ title: 'Success', description: 'Your profile has been updated.', variant: 'default' });
       }

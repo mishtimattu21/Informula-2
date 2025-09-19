@@ -130,6 +130,10 @@ const OnboardingPage: React.FC = () => {
         setError(`Failed to save profile: ${error.message}`);
         toast({ title: 'Save failed', description: error.message, variant: 'destructive' });
       } else {
+        // Mark onboarding as completed for this user
+        if (user) {
+          localStorage.setItem(`hasCompletedOnboarding_${user.id}`, 'true');
+        }
         toast({ title: 'Success', description: 'Your profile has been saved!', variant: 'default' });
         navigate('/');
       }
