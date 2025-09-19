@@ -12,42 +12,33 @@ const PostAuthGate: React.FC = () => {
     const go = async () => {
       if (!isSignedIn || !user) return;
 
-      // Check if profile exists
-      const { data, error } = await supabase
-        .from('user_profiles')
-        .select('id, age, gender, diet_type')
-        .eq('id', user.id)
-        .maybeSingle();
-
-      if (error) {
-        // If we can't read the row (e.g. RLS), send to onboarding to let user create it
-        navigate('/onboarding', { replace: true });
-        return;
-      }
-
-      if (!data) {
-        // No profile yet → create a default row immediately, then send to onboarding
-        const defaultProfile = {
-          id: user.id,
-          age: null as number | null,
-          gender: '',
-          diet_type: '',
-          past_medication: [] as string[],
-          allergies: [] as string[],
-          avoid_list: [] as string[]
-        };
-
-        const { error: insertErr } = await supabase
+      try {
+        // Check if profile exists with a timeout
+        const profilePromise = supabase
           .from('user_profiles')
-          .insert(defaultProfile);
+          .select('id, age, gender, diet_type')
+          .eq('id', user.id)
+          .maybeSingle();
 
-        // Even if insertion fails (e.g. RLS), continue to onboarding where upsert will run
+        // Race between profile check and timeout
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Profile check timeout')), 2000)
+        );
+
+        const { data, error } = await Promise.race([profilePromise, timeoutPromise]) as any;
+
+        if (error || !data) {
+          // If we can't read the row or no data, send to onboarding
+          navigate('/onboarding', { replace: true });
+          return;
+        }
+
+        const isComplete = data.age !== null && data.gender && data.diet_type;
+        navigate(isComplete ? '/' : '/onboarding', { replace: true });
+      } catch (error) {
+        // On any error, send to onboarding
         navigate('/onboarding', { replace: true });
-        return;
       }
-
-      const isComplete = data.age !== null && data.gender && data.diet_type;
-      navigate(isComplete ? '/' : '/onboarding', { replace: true });
     };
     go();
   }, [isSignedIn, user, navigate]);

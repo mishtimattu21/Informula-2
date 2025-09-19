@@ -16,16 +16,14 @@ const SSOCallback: React.FC = () => {
         // Handle the OAuth callback
         await handleRedirectCallback();
         
-        // Wait a bit for Clerk to process the OAuth callback
-        setTimeout(() => {
-          if (isSignedIn) {
-            // User is signed in, redirect to post-auth
-            navigate('/post-auth', { replace: true });
-          } else {
-            // User is not signed in, redirect to auth page
-            navigate('/auth', { replace: true });
-          }
-        }, 1000);
+        // Immediately redirect after handling callback
+        if (isSignedIn) {
+          // User is signed in, redirect to post-auth
+          navigate('/post-auth', { replace: true });
+        } else {
+          // User is not signed in, redirect to auth page
+          navigate('/auth', { replace: true });
+        }
       } catch (error) {
         console.error('OAuth callback error:', error);
         navigate('/auth', { replace: true });

@@ -31,6 +31,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ open, onClose }) => {
 
   const startGoogle = async () => {
     if (!signInLoaded) return;
+    setLoading(true);
     try {
       await signIn!.authenticateWithRedirect({
         strategy: 'oauth_google',
@@ -39,6 +40,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ open, onClose }) => {
       });
     } catch (e: any) {
       setError(e.errors?.[0]?.message || 'Google sign-in failed');
+      setLoading(false);
     }
   };
 
@@ -108,9 +110,9 @@ const AuthModal: React.FC<AuthModalProps> = ({ open, onClose }) => {
 
           {isLogin ? (
             <form onSubmit={handleSignIn} className="space-y-4">
-              <button type="button" onClick={startGoogle} className="w-full h-11 rounded-xl border-2 border-emerald-200 hover:border-emerald-400 text-slate-800 dark:text-slate-200 flex items-center justify-center gap-2">
+              <button type="button" onClick={startGoogle} disabled={loading} className="w-full h-11 rounded-xl border-2 border-emerald-200 hover:border-emerald-400 text-slate-800 dark:text-slate-200 flex items-center justify-center gap-2 disabled:opacity-50">
                 <img src={GOOGLE_LOGO_URL} alt="Google" className="h-5 w-5"/>
-                Continue with Google
+                {loading ? 'Signing in...' : 'Continue with Google'}
               </button>
               <div className="flex items-center gap-3"><div className="flex-1 h-px bg-emerald-100 dark:bg-emerald-900"></div><span className="text-xs text-slate-400">or</span><div className="flex-1 h-px bg-emerald-100 dark:bg-emerald-900"></div></div>
               <div>
@@ -139,9 +141,9 @@ const AuthModal: React.FC<AuthModalProps> = ({ open, onClose }) => {
               </form>
             ) : (
               <form onSubmit={handleSignUp} className="space-y-4">
-                <button type="button" onClick={startGoogle} className="w-full h-11 rounded-xl border-2 border-emerald-200 hover:border-emerald-400 text-slate-800 dark:text-slate-200 flex items-center justify-center gap-2">
+                <button type="button" onClick={startGoogle} disabled={loading} className="w-full h-11 rounded-xl border-2 border-emerald-200 hover:border-emerald-400 text-slate-800 dark:text-slate-200 flex items-center justify-center gap-2 disabled:opacity-50">
                   <img src={GOOGLE_LOGO_URL} alt="Google" className="h-5 w-5"/>
-                  Continue with Google
+                  {loading ? 'Signing in...' : 'Continue with Google'}
                 </button>
                 <div className="flex items-center gap-3"><div className="flex-1 h-px bg-emerald-100 dark:bg-emerald-900"></div><span className="text-xs text-slate-400">or</span><div className="flex-1 h-px bg-emerald-100 dark:bg-emerald-900"></div></div>
                 <div>
