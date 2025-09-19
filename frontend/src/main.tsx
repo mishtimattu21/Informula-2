@@ -10,7 +10,7 @@ const Main = () => (
   <React.StrictMode>
     <ClerkProvider 
       publishableKey={clerkPubKey}
-      fallbackRedirectUrl={`${window.location.origin}/post-auth`}
+      fallbackRedirectUrl={`${window.location.origin}/`}
     >
       <App />
     </ClerkProvider>

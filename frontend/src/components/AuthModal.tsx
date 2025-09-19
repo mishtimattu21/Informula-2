@@ -39,7 +39,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ open, onClose }) => {
       await signIn!.authenticateWithRedirect({
         strategy: 'oauth_google',
         redirectUrl: `${window.location.origin}/sso-callback`,
-        redirectUrlComplete: `${window.location.origin}/post-auth`
+        redirectUrlComplete: `${window.location.origin}/`
       });
     } catch (e: any) {
       setError(e.errors?.[0]?.message || 'Google sign-in failed');

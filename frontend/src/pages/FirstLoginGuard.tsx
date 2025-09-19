@@ -4,7 +4,6 @@ import { useUser } from '@clerk/clerk-react';
 import { supabase } from '@/lib/supabaseClient';
 
 const BYPASS_PATHS = new Set<string>([
-  '/auth',
   '/post-auth',
   '/onboarding',
   '/sso-callback',

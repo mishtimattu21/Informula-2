@@ -6,7 +6,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from './components/ThemeProvider';
 import Index from "./pages/Index";
-import AuthPage from "./pages/AuthPage";
 import SSOCallback from "./pages/SSOCallback";
 import OnboardingPage from "./pages/OnboardingPage";
 import PostAuthGate from "./pages/PostAuthGate";
@@ -30,7 +29,6 @@ const App = () => (
           <FirstLoginGuard />
           <Routes>
             <Route path="/" element={<Index />} />
-            <Route path="/auth" element={<AuthPage />} />
             <Route path="/sso-callback" element={<SSOCallback />} />
             <Route path="/post-auth" element={<PostAuthGate />} />
             <Route path="/onboarding" element={<OnboardingPage />} />
