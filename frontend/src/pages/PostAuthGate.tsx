@@ -20,9 +20,9 @@ const PostAuthGate: React.FC = () => {
           .eq('id', user.id)
           .maybeSingle();
 
-        // Race between profile check and timeout
+        // Race between profile check and timeout (reduced to 1.5s for faster response)
         const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Profile check timeout')), 2000)
+          setTimeout(() => reject(new Error('Profile check timeout')), 1500)
         );
 
         const { data, error } = await Promise.race([profilePromise, timeoutPromise]) as any;

@@ -24,7 +24,10 @@ const AuthModal: React.FC<AuthModalProps> = ({ open, onClose }) => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (isSignedIn && open) onClose();
+    if (isSignedIn && open) {
+      // Immediately close modal when signed in
+      onClose();
+    }
   }, [isSignedIn, open, onClose]);
 
   if (!open) return null;
