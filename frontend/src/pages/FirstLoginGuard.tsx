@@ -7,6 +7,7 @@ const BYPASS_PATHS = new Set<string>([
   '/auth',
   '/post-auth',
   '/onboarding',
+  '/sso-callback',
 ]);
 
 const FirstLoginGuard: React.FC = () => {
