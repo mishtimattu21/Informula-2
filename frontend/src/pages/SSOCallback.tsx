@@ -1,22 +1,38 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useSignIn } from '@clerk/clerk-react';
+import { useSignIn, useSignUp } from '@clerk/clerk-react';
 import { Loader2 } from 'lucide-react';
 
 const SSOCallback: React.FC = () => {
   const navigate = useNavigate();
-  const { signIn, isLoaded } = useSignIn();
+  const { signIn, isLoaded: signInLoaded } = useSignIn();
+  const { signUp, isLoaded: signUpLoaded } = useSignUp();
 
   useEffect(() => {
     const handleCallback = async () => {
-      if (!isLoaded || !signIn) return;
+      if (!signInLoaded || !signUpLoaded) return;
 
       try {
-        // Handle the OAuth callback
-        await signIn.handleRedirectCallback();
-        
-        // Redirect to post-auth page after successful authentication
-        navigate('/post-auth', { replace: true });
+        // Try to handle the OAuth callback with signIn first
+        if (signIn) {
+          const result = await signIn.handleRedirectCallback();
+          if (result.status === 'complete') {
+            navigate('/post-auth', { replace: true });
+            return;
+          }
+        }
+
+        // If signIn doesn't work, try signUp
+        if (signUp) {
+          const result = await signUp.handleRedirectCallback();
+          if (result.status === 'complete') {
+            navigate('/post-auth', { replace: true });
+            return;
+          }
+        }
+
+        // If neither works, redirect to auth page
+        navigate('/auth', { replace: true });
       } catch (error) {
         console.error('SSO callback error:', error);
         // Redirect to auth page on error
@@ -25,7 +41,7 @@ const SSOCallback: React.FC = () => {
     };
 
     handleCallback();
-  }, [isLoaded, signIn, navigate]);
+  }, [signInLoaded, signUpLoaded, signIn, signUp, navigate]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-emerald-50/30 to-teal-50/40 dark:from-background dark:via-emerald-950/20 dark:to-teal-950/30 flex items-center justify-center p-4">
