@@ -16,3 +16,4 @@ requests
 
 # Needed by FastAPI for handling file uploads (UploadFile / Form)
 python-multipart
+
