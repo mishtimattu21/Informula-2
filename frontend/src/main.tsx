@@ -11,8 +11,6 @@ const Main = () => (
     <ClerkProvider 
       publishableKey={clerkPubKey}
       fallbackRedirectUrl={`${window.location.origin}/post-auth`}
-      signInUrl={`${window.location.origin}/auth`}
-      signUpUrl={`${window.location.origin}/auth`}
     >
       <App />
     </ClerkProvider>

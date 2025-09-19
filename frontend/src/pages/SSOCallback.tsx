@@ -1,30 +1,39 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@clerk/clerk-react';
+import { useAuth, useClerk } from '@clerk/clerk-react';
 import { Loader2 } from 'lucide-react';
 
 const SSOCallback: React.FC = () => {
   const navigate = useNavigate();
   const { isSignedIn, isLoaded } = useAuth();
+  const { handleRedirectCallback } = useClerk();
 
   useEffect(() => {
     const handleCallback = async () => {
       if (!isLoaded) return;
 
-      // Wait a bit for Clerk to process the OAuth callback
-      setTimeout(() => {
-        if (isSignedIn) {
-          // User is signed in, redirect to post-auth
-          navigate('/post-auth', { replace: true });
-        } else {
-          // User is not signed in, redirect to auth page
-          navigate('/auth', { replace: true });
-        }
-      }, 1000);
+      try {
+        // Handle the OAuth callback
+        await handleRedirectCallback();
+        
+        // Wait a bit for Clerk to process the OAuth callback
+        setTimeout(() => {
+          if (isSignedIn) {
+            // User is signed in, redirect to post-auth
+            navigate('/post-auth', { replace: true });
+          } else {
+            // User is not signed in, redirect to auth page
+            navigate('/auth', { replace: true });
+          }
+        }, 1000);
+      } catch (error) {
+        console.error('OAuth callback error:', error);
+        navigate('/auth', { replace: true });
+      }
     };
 
     handleCallback();
-  }, [isLoaded, isSignedIn, navigate]);
+  }, [isLoaded, isSignedIn, navigate, handleRedirectCallback]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-emerald-50/30 to-teal-50/40 dark:from-background dark:via-emerald-950/20 dark:to-teal-950/30 flex items-center justify-center p-4">
