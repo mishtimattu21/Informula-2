@@ -147,5 +147,3 @@ async def analyze_text(request: Request):
     product_name = data.get('productName', '')
     json_result = run_pipeline(ingredients, user_id, product_type, product_name)
     return json_result
-
-
