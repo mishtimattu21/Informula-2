@@ -57,8 +57,6 @@ const ResultsPage: React.FC = () => {
   const ingredientRef = useRef<HTMLDivElement | null>(null);
   const overallRef = useRef<HTMLDivElement | null>(null);
   const [chatHeight, setChatHeight] = useState<number | undefined>(undefined);
-  const breakdownContentRef = useRef<HTMLDivElement | null>(null);
-  const [breakdownMaxPx, setBreakdownMaxPx] = useState<number | undefined>(undefined);
   const [mobileView, setMobileView] = useState<'analysis' | 'chat'>('analysis');
 
   // Compute deterministic score and risk band from insight risks
@@ -153,28 +151,6 @@ const ResultsPage: React.FC = () => {
       window.removeEventListener('resize', update);
     };
   }, []);
-
-  // Compute max height so exactly three ingredient items fit; if more than 3, scroll
-  useEffect(() => {
-    const content = breakdownContentRef.current;
-    if (!content) return;
-    const items = Array.from(content.querySelectorAll('.ingredient-item')) as HTMLElement[];
-    if (items.length === 0) return;
-    // Sum heights of first three items plus vertical gaps from computed styles
-    const count = Math.min(3, items.length);
-    let total = 0;
-    for (let i = 0; i < count; i++) {
-      const el = items[i];
-      const rect = el.getBoundingClientRect();
-      total += rect.height;
-      if (i < count - 1) {
-        const style = getComputedStyle(content);
-        const gap = parseFloat(style.rowGap || style.gap || '0');
-        total += isNaN(gap) ? 0 : gap;
-      }
-    }
-    setBreakdownMaxPx(total);
-  }, [analysisData.insights]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-emerald-50/30 to-teal-50/40 dark:from-background dark:via-emerald-950/20 dark:to-teal-950/30">
@@ -292,7 +268,7 @@ const ResultsPage: React.FC = () => {
                   <CardHeader>
                     <CardTitle>Ingredient Breakdown</CardTitle>
                   </CardHeader>
-                  <CardContent ref={breakdownContentRef} className="space-y-5 overflow-y-auto pr-1" style={{ maxHeight: breakdownMaxPx ? `${breakdownMaxPx}px` : undefined }}>
+                  <CardContent className="space-y-5 overflow-y-auto pr-1 max-h-[min(70vh,720px)]">
                     {[...(analysisData.insights || [])]
                       .sort((a: any, b: any) => {
                         const rank = (risk: string) => {

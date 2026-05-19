@@ -17,11 +17,17 @@ export type AnalysisResponse = {
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL as string) || 'http://127.0.0.1:8000';
 
-export async function analyzeImage(base64Image: string, userId?: string, productName?: string, productType?: string): Promise<AnalysisResponse> {
+export async function analyzeImage(
+  base64Image: string,
+  userId?: string,
+  productName?: string,
+  productType?: string,
+  profile?: Record<string, unknown>
+): Promise<AnalysisResponse> {
   const res = await fetch(`${API_BASE}/api/analyze-image`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ image: base64Image, userId, productName, productType })
+    body: JSON.stringify({ image: base64Image, userId, productName, productType, profile })
   });
   if (!res.ok) throw new Error(`Image analysis failed: ${res.status}`);
   return res.json();
@@ -73,13 +79,19 @@ async function parseApiResponse(res: Response, label: string) {
   return data;
 }
 
-export async function analyzeText(ingredients: string, userId?: string, productName?: string, productType?: string): Promise<AnalysisResponse> {
+export async function analyzeText(
+  ingredients: string,
+  userId?: string,
+  productName?: string,
+  productType?: string,
+  profile?: Record<string, unknown>
+): Promise<AnalysisResponse> {
   let res: Response;
   try {
     res = await fetch(`${API_BASE}/api/analyze-text`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ingredients, userId, productName, productType }),
+      body: JSON.stringify({ ingredients, userId, productName, productType, profile }),
     });
   } catch {
     throw new Error(

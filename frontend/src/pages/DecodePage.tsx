@@ -12,6 +12,7 @@ import { useUser } from '@clerk/clerk-react';
 import { useTheme } from '../components/ThemeProvider';
 import { toast } from '@/hooks/use-toast';
 import CameraInterface from '../components/CameraInterface';
+import { getCachedProfile } from '@/services/profile';
 
 const DecodePage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'scan' | 'upload' | 'type'>('scan');
@@ -33,6 +34,11 @@ const DecodePage: React.FC = () => {
   const navigate = useNavigate();
   const { toggleTheme, theme } = useTheme();
   const { isSignedIn, user } = useUser();
+
+  useEffect(() => {
+    const base = (import.meta.env.VITE_API_BASE_URL as string) || 'http://127.0.0.1:8000';
+    fetch(`${base}/api/health`).catch(() => {});
+  }, []);
 
   const handleProductTypeChange = (value: string) => {
     setProductType(value);
@@ -113,23 +119,25 @@ const DecodePage: React.FC = () => {
       return;
     }
 
-    toast({
+    const { dismiss: dismissAnalysisToast } = toast({
       title: "Analysis starting...",
       description: "Processing your ingredients with AI.",
+      duration: Number.POSITIVE_INFINITY,
     });
 
     try {
       // Send Clerk user id so backend can pull profile from Supabase for personalized analysis
       const userId = isSignedIn && user ? user.id : undefined;
+      const profile = userId ? getCachedProfile(userId) ?? undefined : undefined;
       let result: AnalysisResponse | string | undefined;
       const finalProductType = productType === 'other' && customProductType ? customProductType : productType;
       
       if (activeTab === 'upload' && uploadedFile) {
         result = await analyzeImageFile(uploadedFile, userId, productName, finalProductType);
       } else if (activeTab === 'scan' && capturedImage) {
-        result = await analyzeImage(capturedImage, userId, productName, finalProductType);
+        result = await analyzeImage(capturedImage, userId, productName, finalProductType, profile);
       } else if (activeTab === 'type') {
-        result = await analyzeText(ingredients, userId, productName, finalProductType);
+        result = await analyzeText(ingredients, userId, productName, finalProductType, profile);
       }
 
       if (!result) throw new Error('No result');
@@ -137,10 +145,11 @@ const DecodePage: React.FC = () => {
       if (typeof result === 'string') {
         try { result = JSON.parse(result); } catch (e) { /* ignore parse error */ }
       }
-      // Persist to navigation state or a store; navigating with state for now
+      dismissAnalysisToast();
       navigate('/results', { state: { analysis: result } });
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
+      dismissAnalysisToast();
       toast({ title: 'Analysis failed', description: message, variant: 'destructive' });
     }
   };

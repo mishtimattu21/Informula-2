@@ -1,10 +1,12 @@
 from fastapi import FastAPI, UploadFile, File, Form, Request
 from fastapi.middleware.cors import CORSMiddleware
 from typing import Optional
+import asyncio
 import base64
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
 
 from supabase_client import get_user_profile, upsert_user_profile
-from prompt_formatter import format_prompt
+from prompt_formatter import format_prompt, parse_ingredient_list
 from gemini_client import get_ingredient_report
 import json
 import re
@@ -61,22 +63,121 @@ DEFAULT_PROFILE = {
 }
 
 
-def run_pipeline(ingredients_text: str, user_id: Optional[str], product_type: str = '', product_name: str = ''):
+def _resolve_profile(user_id: Optional[str], profile_payload: Optional[dict] = None) -> dict:
     user_profile = DEFAULT_PROFILE.copy()
+    if profile_payload:
+        for key in user_profile:
+            if key in profile_payload and profile_payload[key] is not None:
+                user_profile[key] = profile_payload[key]
+        return user_profile
     if user_id:
-        profile = get_user_profile(user_id)
-        if profile:
-            user_profile = profile
+        with ThreadPoolExecutor(max_workers=1) as pool:
+            future = pool.submit(get_user_profile, user_id)
+            try:
+                profile = future.result(timeout=1.5)
+                if profile:
+                    return profile
+            except FuturesTimeoutError:
+                pass
+    return user_profile
+
+
+def _normalize_ingredient_key(name: str) -> str:
+    base = re.sub(r"\s*\([^)]*\)", "", name.strip().lower())
+    return re.sub(r"\s+", " ", base).strip()
+
+
+def _index_insights(insights: list) -> dict:
+    indexed: dict[str, dict] = {}
+    for item in insights or []:
+        if not isinstance(item, dict):
+            continue
+        raw_name = (item.get("ingredient") or "").strip()
+        if not raw_name:
+            continue
+        for key in {_normalize_ingredient_key(raw_name), raw_name.strip().lower()}:
+            if key and key not in indexed:
+                indexed[key] = item
+    return indexed
+
+
+def _find_insight_for_ingredient(ingredient: str, indexed: dict) -> dict | None:
+    keys = [_normalize_ingredient_key(ingredient), ingredient.strip().lower()]
+    for key in keys:
+        if key in indexed:
+            return indexed[key]
+    norm = _normalize_ingredient_key(ingredient)
+    for key, item in indexed.items():
+        if norm == key or norm in key or key in norm:
+            return item
+    return None
+
+
+def _ensure_full_insights(parsed: dict, ingredients_text: str) -> dict:
+    ingredients = parse_ingredient_list(ingredients_text)
+    if not ingredients:
+        return parsed
+
+    indexed = _index_insights(parsed.get("insights") or [])
+    merged: list[dict] = []
+    used_keys: set[str] = set()
+
+    for ingredient in ingredients:
+        match = _find_insight_for_ingredient(ingredient, indexed)
+        if match:
+            merged.append({**match, "ingredient": ingredient})
+            used_keys.add(_normalize_ingredient_key(ingredient))
+        else:
+            merged.append(
+                {
+                    "ingredient": ingredient,
+                    "risk": "safe",
+                    "description": "Listed on the label; detailed analysis was not returned for this entry.",
+                    "source": "Informula",
+                    "sources": [],
+                }
+            )
+
+    for item in parsed.get("insights") or []:
+        if not isinstance(item, dict):
+            continue
+        name = (item.get("ingredient") or "").strip()
+        if not name:
+            continue
+        key = _normalize_ingredient_key(name)
+        if key not in used_keys:
+            merged.append(item)
+
+    parsed["insights"] = merged
+    parsed["totalIngredients"] = len(ingredients)
+    parsed["flaggedIngredients"] = sum(
+        1
+        for item in merged
+        if (item.get("risk") or "").lower() in ("high", "medium", "low")
+    )
+    return parsed
+
+
+def run_pipeline(
+    ingredients_text: str,
+    user_id: Optional[str],
+    product_type: str = '',
+    product_name: str = '',
+    profile_payload: Optional[dict] = None,
+):
+    user_profile = _resolve_profile(user_id, profile_payload)
 
     try:
         prompt = format_prompt(ingredients_text, user_profile, product_type, product_name)
         result = get_ingredient_report(prompt)
+    except RuntimeError as e:
+        return {'error': str(e)}
     except Exception as e:
         return {'error': str(e)}
 
     parsed = _extract_json(result)
     if parsed is not None:
-        return parsed
+        return _ensure_full_insights(parsed, ingredients_text)
     return {'error': 'LLM returned non-JSON', 'raw': result}
 
 
@@ -141,37 +242,38 @@ async def save_profile(request: Request):
 
 @app.post("/api/analyze-image")
 async def analyze_image(request: Request, file: Optional[UploadFile] = File(None), image: Optional[str] = Form(None), userId: Optional[str] = Form(None), productName: Optional[str] = Form(None), productType: Optional[str] = Form(None)):
-    # Accept either multipart form-data (file) OR JSON body { image: base64, userId, ... }
     image_bytes: Optional[bytes] = None
     uid: Optional[str] = userId
+    profile_payload: Optional[dict] = None
+    product_type = productType or ''
+    product_name = productName or ''
 
-    # Multipart path
     if file is not None:
         image_bytes = await file.read()
     elif image is not None:
-        header, b64 = (image.split(',', 1) + [image])[:2]
+        _, b64 = (image.split(',', 1) + [image])[:2]
         image_bytes = base64.b64decode(b64)
     else:
-        # Try JSON
         try:
             data = await request.json()
             img = data.get('image')
             uid = data.get('userId') or uid
-            productName = data.get('productName') or productName
-            productType = data.get('productType') or productType
+            product_name = data.get('productName') or product_name
+            product_type = data.get('productType') or product_type
+            profile_payload = data.get('profile')
             if img:
-                header, b64 = (img.split(',', 1) + [img])[:2]
+                _, b64 = (img.split(',', 1) + [img])[:2]
                 image_bytes = base64.b64decode(b64)
         except Exception:
             pass
 
     if image_bytes is None:
-        return { 'error': 'No image provided' }
+        return {'error': 'No image provided'}
 
-    ingredients_text = extract_text_from_bytes(image_bytes)
-    product_type = productType or ''
-    product_name = productName or ''
-    json_result = run_pipeline(ingredients_text, uid, product_type, product_name)
+    ingredients_text = await asyncio.to_thread(extract_text_from_bytes, image_bytes)
+    json_result = await asyncio.to_thread(
+        run_pipeline, ingredients_text, uid, product_type, product_name, profile_payload
+    )
     return json_result
 
 
@@ -182,5 +284,8 @@ async def analyze_text(request: Request):
     user_id = data.get('userId')
     product_type = data.get('productType', '')
     product_name = data.get('productName', '')
-    json_result = run_pipeline(ingredients, user_id, product_type, product_name)
+    profile_payload = data.get('profile')
+    json_result = await asyncio.to_thread(
+        run_pipeline, ingredients, user_id, product_type, product_name, profile_payload
+    )
     return json_result

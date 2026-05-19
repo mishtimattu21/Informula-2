@@ -35,7 +35,7 @@ export function defaultProfile(userId: string): UserProfile {
   };
 }
 
-function fromStorage(userId: string): UserProfile | null {
+export function getCachedProfile(userId: string): UserProfile | null {
   try {
     const raw = localStorage.getItem(storageKey(userId));
     return raw ? (JSON.parse(raw) as UserProfile) : null;
@@ -62,7 +62,7 @@ export async function loadProfile(userId: string): Promise<UserProfile | null> {
   } catch {
     // fall through to local storage
   }
-  const stored = fromStorage(userId);
+  const stored = getCachedProfile(userId);
   if (stored) {
     return { ...stored, diet_type: normalizeDietType(stored.diet_type) };
   }
