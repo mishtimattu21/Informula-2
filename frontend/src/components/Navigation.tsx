@@ -17,7 +17,9 @@ const Navigation: React.FC = () => {
   const scrollToSection = (sectionId: string) => {
     const element = document.getElementById(sectionId);
     if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
+      const navOffset = 80;
+      const targetPosition = element.getBoundingClientRect().top + window.scrollY - navOffset;
+      window.scrollTo({ top: targetPosition, behavior: 'smooth' });
     }
   };
 

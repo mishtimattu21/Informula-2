@@ -78,9 +78,9 @@ VITE_API_BASE_URL=http://127.0.0.1:8000
 ```env
 GOOGLE_API_KEY=your_gemini_api_key
 SUPABASE_URL=your_supabase_url
-SUPABASE_KEY=your_supabase_key
-AZURE_VISION_KEY=your_azure_key
-AZURE_VISION_ENDPOINT=your_azure_endpoint
+SUPABASE_SERVICE_KEY=your_supabase_service_role_key
+AZURE_API_KEY=your_azure_key
+ENDPOINT=your_azure_endpoint
 ```
 
 ## 📱 Usage

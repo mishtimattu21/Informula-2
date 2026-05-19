@@ -73,12 +73,12 @@ const StepsSection: React.FC = () => {
   return (
     <div>
 		{/* Header Section */}
-		<section className="py-8 bg-gradient-to-br from-background to-emerald-50/30 dark:to-emerald-950/20">
+		<section id="steps" className="scroll-mt-20 pt-8 pb-2 lg:pb-0 bg-gradient-to-br from-background to-emerald-50/30 dark:to-emerald-950/20">
 			<div className="container mx-auto px-4 text-center">
-				<h2 className="text-3xl md:text-4xl font-bold mb-3">
+				<h2 className="text-4xl md:text-5xl font-bold mb-3">
 					How <span className="bg-gradient-to-r from-emerald-600 to-teal-500 bg-clip-text text-transparent">Informula</span> works
 				</h2>
-				<p className="text-foreground/70 text-base max-w-xl mx-auto">
+				<p className="text-foreground/70 text-lg md:text-xl max-w-2xl mx-auto">
 					From a quick photo to clear answers you can act on.
 				</p>
 			</div>

@@ -5,17 +5,27 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_KEY")
+supabase: Client | None = None
 
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+
+def get_supabase_client() -> Client:
+    global supabase
+    if supabase is None:
+        supabase_url = os.getenv("SUPABASE_URL")
+        supabase_key = os.getenv("SUPABASE_SERVICE_KEY")
+        if not supabase_url or not supabase_key:
+            raise RuntimeError("Supabase configuration missing: SUPABASE_URL or SUPABASE_SERVICE_KEY")
+        supabase = create_client(supabase_url, supabase_key)
+    return supabase
+
 
 def get_user_profile(user_id: str):
     if not user_id:
         return None
     try:
+        client = get_supabase_client()
         response = (
-            supabase.table("user_profiles")
+            client.table("user_profiles")
             .select("*")
             .eq("id", user_id)
             .maybe_single()
@@ -27,4 +37,5 @@ def get_user_profile(user_id: str):
 
 
 def upsert_user_profile(profile: dict):
-    return supabase.table("user_profiles").upsert(profile, on_conflict="id").execute()
+    client = get_supabase_client()
+    return client.table("user_profiles").upsert(profile, on_conflict="id").execute()
