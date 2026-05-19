@@ -36,4 +36,4 @@ Ingredients:
 {ingredients_input.strip()}
 
 flaggedIngredients = non-safe or allergy/avoid matches. initialAnalysis: 2-3 sentences. recommendations: 3 items, 8-10 words each.
-Return ONLY JSON."""
+Return ONLY JSON.""" 
