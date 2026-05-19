@@ -4,7 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Upload, Camera, RefreshCcw } from 'lucide-react';
+import { Upload, Camera, RefreshCcw, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { analyzeImageFile, analyzeImage, analyzeText } from '@/services/api';
 import type { AnalysisResponse } from '@/services/api';
@@ -31,6 +31,7 @@ const DecodePage: React.FC = () => {
   const [productName, setProductName] = useState('');
   const [productType, setProductType] = useState('');
   const [customProductType, setCustomProductType] = useState('');
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const navigate = useNavigate();
   const { toggleTheme, theme } = useTheme();
   const { isSignedIn, user } = useUser();
@@ -92,6 +93,8 @@ const DecodePage: React.FC = () => {
   };
 
   const handleAnalyze = async () => {
+    if (isAnalyzing) return;
+
     if (activeTab === 'type' && !ingredients.trim()) {
       toast({
         title: "No ingredients entered",
@@ -126,6 +129,7 @@ const DecodePage: React.FC = () => {
     });
 
     try {
+      setIsAnalyzing(true);
       // Send Clerk user id so backend can pull profile from Supabase for personalized analysis
       const userId = isSignedIn && user ? user.id : undefined;
       const profile = userId ? getCachedProfile(userId) ?? undefined : undefined;
@@ -151,6 +155,8 @@ const DecodePage: React.FC = () => {
       const message = err instanceof Error ? err.message : String(err);
       dismissAnalysisToast();
       toast({ title: 'Analysis failed', description: message, variant: 'destructive' });
+    } finally {
+      setIsAnalyzing(false);
     }
   };
 
@@ -652,9 +658,17 @@ Example: Water, Sodium Lauryl Sulfate, Cocamidopropyl Betaine, Sodium Chloride, 
           <div className="hidden md:block text-center">
             <Button 
               onClick={handleAnalyze}
-              className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white px-12 py-6 text-lg rounded-2xl shadow-lg hover:shadow-emerald-500/25 transition-all duration-300"
+              disabled={isAnalyzing}
+              className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white px-12 py-6 text-lg rounded-2xl shadow-lg hover:shadow-emerald-500/25 transition-all duration-300 disabled:cursor-not-allowed disabled:opacity-80"
             >
-              Analyze Ingredients
+              {isAnalyzing ? (
+                <span className="inline-flex items-center gap-2">
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  Analyzing...
+                </span>
+              ) : (
+                'Analyze Ingredients'
+              )}
             </Button>
           </div>
           {/* Mobile sticky footer */}
@@ -662,9 +676,17 @@ Example: Water, Sodium Lauryl Sulfate, Cocamidopropyl Betaine, Sodium Chloride, 
             <div className="container mx-auto px-0">
             <Button 
               onClick={handleAnalyze}
-                className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white py-3 text-sm rounded-xl shadow-lg"
+              disabled={isAnalyzing}
+                className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white py-3 text-sm rounded-xl shadow-lg disabled:cursor-not-allowed disabled:opacity-80"
             >
-              Analyze Ingredients
+              {isAnalyzing ? (
+                <span className="inline-flex items-center justify-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Analyzing...
+                </span>
+              ) : (
+                'Analyze Ingredients'
+              )}
             </Button>
             </div>
           </div>
