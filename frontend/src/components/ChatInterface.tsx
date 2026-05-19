@@ -28,16 +28,29 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialAnalysis, heightPx
   const { isSignedIn, user } = useUser();
 
   useEffect(() => {
-    if (initialAnalysis) {
-      const recs = (recommendations && recommendations.length > 0 ? recommendations : []).slice(0, 3);
-      const recText = recs.length ? `\n\nRecommendations:\n- ${recs.join('\n- ')}` : '';
-      setMessages([{
-        id: '1',
-        content: `${initialAnalysis}${recText}`,
+    if (!initialAnalysis) return;
+
+    const recs = (recommendations && recommendations.length > 0 ? recommendations : []).slice(0, 3);
+    const recText = recs.length ? `\n\nRecommendations:\n- ${recs.join('\n- ')}` : '';
+    const initialContent = `${initialAnalysis}${recText}`;
+
+    setMessages((prev) => {
+      // Keep conversation once the user has sent a message
+      if (prev.some((m) => m.sender === 'user')) return prev;
+
+      const initialMessage: Message = {
+        id: 'initial',
+        content: initialContent,
         sender: 'ai',
-        timestamp: new Date()
-      }]);
-    }
+        timestamp: new Date(),
+      };
+
+      if (prev.length === 0) return [initialMessage];
+      if (prev.length === 1 && prev[0].sender === 'ai') {
+        return [{ ...prev[0], content: initialContent }];
+      }
+      return prev;
+    });
   }, [initialAnalysis, recommendations]);
 
   useEffect(() => {
@@ -45,38 +58,47 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialAnalysis, heightPx
   }, [messages]);
 
   const handleSendMessage = async () => {
-    if (!inputValue.trim()) return;
+    const text = inputValue.trim();
+    if (!text) return;
 
     const userMessage: Message = {
-      id: Date.now().toString(),
-      content: inputValue,
+      id: `user-${Date.now()}`,
+      content: text,
       sender: 'user',
-      timestamp: new Date()
+      timestamp: new Date(),
     };
 
-    setMessages(prev => [...prev, userMessage]);
     setInputValue('');
     setIsTyping(true);
 
+    let conversation: Message[] = [];
+    setMessages((prev) => {
+      conversation = [...prev, userMessage];
+      return conversation;
+    });
+
     try {
-      const history = [...messages, userMessage].map(m => ({ role: (m.sender === 'user' ? 'user' : 'ai') as 'user' | 'ai', content: m.content }));
+      const history = conversation.map((m) => ({
+        role: (m.sender === 'user' ? 'user' : 'ai') as 'user' | 'ai',
+        content: m.content,
+      }));
       const userId = isSignedIn && user ? user.id : undefined;
-      const resp = await chatAsk(inputValue, history, initialAnalysis, userId);
+      const resp = await chatAsk(text, history, initialAnalysis, userId);
       const aiResponse: Message = {
-        id: (Date.now() + 1).toString(),
+        id: `ai-${Date.now()}`,
         content: resp.answer,
         sender: 'ai',
-        timestamp: new Date()
+        timestamp: new Date(),
       };
-      setMessages(prev => [...prev, aiResponse]);
-    } catch (e: any) {
+      setMessages((prev) => [...prev, aiResponse]);
+    } catch {
       const aiResponse: Message = {
-        id: (Date.now() + 1).toString(),
+        id: `ai-${Date.now()}`,
         content: 'Sorry, I had trouble answering that. Please try again.',
         sender: 'ai',
-        timestamp: new Date()
+        timestamp: new Date(),
       };
-      setMessages(prev => [...prev, aiResponse]);
+      setMessages((prev) => [...prev, aiResponse]);
     } finally {
       setIsTyping(false);
     }
